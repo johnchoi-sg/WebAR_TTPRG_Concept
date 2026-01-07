@@ -13,6 +13,12 @@ export class GameScene {
         // Game objects
         this.ground = null;
         this.character = null;
+        
+        // Camera smoothing
+        this.targetCameraPosition = new THREE.Vector3();
+        this.targetCameraQuaternion = new THREE.Quaternion();
+        this.positionSmoothingFactor = 0.1; // Lower = smoother but more lag (0.05-0.2 recommended)
+        this.rotationSmoothingFactor = 0.15; // Rotation can often be smoother with slightly higher value
     }
 
     /**
@@ -139,9 +145,13 @@ export class GameScene {
         const camScale = new THREE.Vector3();
         matrix.decompose(camPos, camQuat, camScale);
         
-        // Apply to camera (1:1 match with AR tracking)
-        this.camera.position.copy(camPos);
-        this.camera.quaternion.copy(camQuat);
+        // Update target camera transform (for smoothing)
+        this.targetCameraPosition.copy(camPos);
+        this.targetCameraQuaternion.copy(camQuat);
+        
+        // Apply smoothing using lerp (position) and slerp (rotation)
+        this.camera.position.lerp(this.targetCameraPosition, this.positionSmoothingFactor);
+        this.camera.quaternion.slerp(this.targetCameraQuaternion, this.rotationSmoothingFactor);
         
         // Update matrix manually
         this.camera.updateMatrix();
@@ -153,8 +163,8 @@ export class GameScene {
                 scaledPos: scaledPos.clone(),
                 rawQuat: quaternion.clone(),
                 adjustedQuat: adjustedQuat.clone(),
-                camPos: camPos.clone(),
-                camQuat: camQuat.clone()
+                targetPos: this.targetCameraPosition.clone(),
+                actualPos: this.camera.position.clone()
             });
         }
     }
