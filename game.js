@@ -95,6 +95,7 @@ function initDesktop() {
 
 // Initialize AR Mode
 function initAR() {
+    console.log('Initializing AR mode...');
     document.getElementById('ar-container').style.display = 'block';
     document.getElementById('joystick-container').style.display = 'block';
     
@@ -118,28 +119,38 @@ function initAR() {
     
     // Setup AR Toolkit Source (Camera)
     arToolkitSource = new THREEx.ArToolkitSource({
-        sourceType: 'webcam'
+        sourceType: 'webcam',
+        sourceWidth: window.innerWidth,
+        sourceHeight: window.innerHeight,
+        displayWidth: window.innerWidth,
+        displayHeight: window.innerHeight
     });
     
     arToolkitSource.init(function onReady() {
+        console.log('AR Source ready!');
         onARSourceReady();
     }, function onError(error) {
         console.error('AR Source Error:', error);
-        alert('Failed to access camera. Please grant camera permissions.');
+        alert('Failed to access camera. Please grant camera permissions and use HTTPS.');
     });
     
     // Setup AR Toolkit Context
     arToolkitContext = new THREEx.ArToolkitContext({
         cameraParametersUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/data/camera_para.dat',
-        detectionMode: 'mono'
+        detectionMode: 'mono',
+        maxDetectionRate: 60,
+        canvasWidth: window.innerWidth,
+        canvasHeight: window.innerHeight
     });
     
     arToolkitContext.init(function onCompleted() {
+        console.log('AR Context initialized!');
         camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
     });
     
     // Create Marker Root (anchor point)
     markerRoot = new THREE.Group();
+    markerRoot.visible = false; // Hide until marker detected
     scene.add(markerRoot);
     
     // Setup Marker Controls
@@ -149,15 +160,31 @@ function initAR() {
         changeMatrixMode: 'cameraTransformMatrix'
     });
     
+    // Add marker detection event listeners
+    markerRoot.addEventListener('markerFound', function() {
+        console.log('Marker found!');
+        markerRoot.visible = true;
+    });
+    
+    markerRoot.addEventListener('markerLost', function() {
+        console.log('Marker lost!');
+        markerRoot.visible = false;
+    });
+    
     // Setup Lights
     setupLights();
     
-    // Create World and Character (attached to marker)
+    // Create World and Character (attached to marker) - LARGER for visibility
     createWorld(markerRoot);
     createCharacter(markerRoot);
     
+    // Scale up the entire marker root for better visibility
+    markerRoot.scale.set(2, 2, 2);
+    
     // Handle window resize
     window.addEventListener('resize', onARResize);
+    
+    console.log('AR initialization complete!');
 }
 
 // AR Source Ready Handler
@@ -503,6 +530,18 @@ function animate() {
     
     if (isARMode && arToolkitContext && arToolkitSource && arToolkitSource.ready) {
         arToolkitContext.update(arToolkitSource.domElement);
+        
+        // Update debug info
+        if (markerRoot) {
+            const markerVisible = markerRoot.visible;
+            const controlsInfo = document.getElementById('controls-info');
+            if (controlsInfo) {
+                controlsInfo.textContent = markerVisible ? 
+                    '✅ Marker detected! Use joystick to move.' : 
+                    '🔍 Searching for marker...';
+                controlsInfo.style.color = markerVisible ? '#4ecca3' : '#ff6b6b';
+            }
+        }
     }
     
     updateCharacter();
