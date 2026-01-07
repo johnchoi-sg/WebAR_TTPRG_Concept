@@ -5,7 +5,10 @@
   "main": "index.html",
   "scripts": {
     "start": "npx http-server -p 8000 -c-1",
-    "dev": "npx http-server -p 8000 -c-1 -o"
+    "start:https": "npx http-server -p 8000 -S -C cert.pem -K key.pem",
+    "generate-cert": "npx mkcert create-ca && npx mkcert create-cert",
+    "dev": "npx http-server -p 8000 -c-1 -o",
+    "test:ar": "npx http-server -p 8000 -c-1 -o ar-test.html"
   },
   "keywords": [
     "webAR",

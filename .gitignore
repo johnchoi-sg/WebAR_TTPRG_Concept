@@ -7,3 +7,9 @@ node_modules/
 *.swo
 *~
 
+# SSL Certificates (local development only)
+*.pem
+*.key
+*.crt
+*.cert
+

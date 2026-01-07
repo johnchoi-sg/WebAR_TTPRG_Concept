@@ -11,8 +11,38 @@
 </head>
 <body>
     <div id="info">
-        <div id="device-info">Detecting device...</div>
-        <div id="controls-info"></div>
+        <div id="desktop-info" style="display: none;">
+            🖥️ Desktop Mode<br>
+            Use Arrow Keys or WASD to move
+        </div>
+        <div id="mobile-info" style="display: none;">
+            📱 AR Mode<br>
+            Point camera at marker and use joystick to move
+        </div>
+    </div>
+    
+    <!-- Test Pages Menu -->
+    <div id="test-menu">
+        <button id="test-menu-toggle">🧪 Tests</button>
+        <div id="test-menu-content" style="display: none;">
+            <h3>🧪 Test Pages</h3>
+            <a href="compile-target.html" class="test-link">
+                🔨 Compile Target<br>
+                <small>Create targets.mind file</small>
+            </a>
+            <a href="ar-test.html" class="test-link">
+                📷 Simple AR Test<br>
+                <small>Test AR with green box</small>
+            </a>
+            <a href="docs/QUICK_START.md" class="test-link" target="_blank">
+                ⚡ Quick Start Guide<br>
+                <small>3-step setup guide</small>
+            </a>
+            <a href="docs/SIMPLE_TEST.md" class="test-link" target="_blank">
+                📚 Detailed Guide<br>
+                <small>Step-by-step instructions</small>
+            </a>
+        </div>
     </div>
     
     <!-- Debug Panel for Mobile AR -->
@@ -89,8 +119,54 @@
         <video id="ar-video" autoplay playsinline></video>
         <canvas id="ar-canvas"></canvas>
     </div>
+    
+    <!-- Camera Permission Prompt -->
+    <div id="camera-prompt" style="display: none;">
+        <div id="camera-prompt-content">
+            <h2>📷 Camera Access Required</h2>
+            <p>This AR experience needs camera access to work.</p>
+            <p><strong>Please allow camera permissions when prompted.</strong></p>
+            <button id="request-camera-btn" class="primary-button">
+                📷 Enable Camera
+            </button>
+            <div id="camera-error" style="display: none; color: #ff4444; margin-top: 10px;"></div>
+            <div id="camera-help" style="margin-top: 15px; font-size: 0.9em; color: #666;">
+                <details>
+                    <summary>Not working? Click for help</summary>
+                    <ul style="text-align: left; margin-top: 10px;">
+                        <li>Make sure you're using HTTPS or localhost</li>
+                        <li>Check browser camera permissions in settings</li>
+                        <li>Close other apps using the camera</li>
+                        <li>Try refreshing the page</li>
+                        <li>See <a href="START_HERE_CAMERA.md" target="_blank">camera setup guide</a></li>
+                    </ul>
+                </details>
+            </div>
+        </div>
+    </div>
 
-    <script src="src/game.js"></script>
+    <script type="module" src="src/game.js"></script>
+    
+    <!-- Test Menu Toggle Script -->
+    <script>
+        // Toggle test menu
+        const testMenuToggle = document.getElementById('test-menu-toggle');
+        const testMenuContent = document.getElementById('test-menu-content');
+        
+        if (testMenuToggle && testMenuContent) {
+            testMenuToggle.addEventListener('click', () => {
+                const isVisible = testMenuContent.style.display === 'block';
+                testMenuContent.style.display = isVisible ? 'none' : 'block';
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!document.getElementById('test-menu').contains(e.target)) {
+                    testMenuContent.style.display = 'none';
+                }
+            });
+        }
+    </script>
 </body>
 </html>
 
