@@ -1,192 +1,183 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>WebAR TTRPG Game</title>
-    
-    <!-- MindAR A-Frame (Official Way) -->
-    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MindAR Tracking Data</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
         body {
             margin: 0;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
+            font-family: 'Courier New', monospace;
         }
-        
-        #info {
+
+        #debug {
             position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            z-index: 1000;
-            font-size: 14px;
-        }
-        
-        #test-menu {
-            position: fixed;
-            bottom: 20px;
+            top: 20px;
             left: 20px;
-            z-index: 1000;
-        }
-        
-        #test-menu-toggle {
-            background: rgba(100, 149, 237, 0.9);
-            color: white;
-            border: 2px solid #6495ed;
-            padding: 12px 20px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 25px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        }
-        
-        #test-menu-toggle:hover {
-            background: rgba(100, 149, 237, 1);
-        }
-        
-        #test-menu-content {
-            position: absolute;
-            bottom: 60px;
-            left: 0;
-            background: rgba(0, 0, 0, 0.95);
-            border: 2px solid #6495ed;
-            border-radius: 10px;
-            padding: 15px;
-            min-width: 250px;
-            display: none;
-        }
-        
-        #test-menu-content h3 {
-            color: #6495ed;
-            margin: 0 0 15px 0;
-            font-size: 16px;
-        }
-        
-        .test-link {
-            display: block;
-            background: rgba(100, 149, 237, 0.2);
-            color: white;
-            text-decoration: none;
-            padding: 12px;
-            margin: 8px 0;
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff00;
+            padding: 20px;
+            border: 2px solid #00ff00;
             border-radius: 8px;
-            border: 1px solid rgba(100, 149, 237, 0.4);
+            font-size: 16px;
+            z-index: 10000;
+            min-width: 350px;
         }
-        
-        .test-link:hover {
-            background: rgba(100, 149, 237, 0.4);
+
+        h2 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            border-bottom: 1px solid #00ff00;
+            padding-bottom: 8px;
         }
-        
-        .test-link small {
-            display: block;
-            color: #aaa;
-            font-size: 11px;
-            margin-top: 4px;
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(0, 255, 0, 0.05);
+        }
+
+        .label {
+            color: #888;
+        }
+
+        .value {
+            color: #00ff00;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        #status {
+            padding: 10px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+
+        .tracking {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+        }
+
+        .lost {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff0000;
+            color: #ff0000;
         }
     </style>
 </head>
 <body>
-    <div id="info">
-        🎮 WebAR TTRPG Game<br>
-        <small>Point camera at target marker</small>
-    </div>
-    
-    <!-- Test Menu -->
-    <div id="test-menu">
-        <button id="test-menu-toggle">🧪 Tests</button>
-        <div id="test-menu-content">
-            <h3>🧪 Test Pages</h3>
-            <a href="compile-target.html" class="test-link">
-                🔨 Compile Target<br>
-                <small>Create targets.mind file</small>
-            </a>
-            <a href="ar-test.html" class="test-link">
-                📷 Simple AR Test<br>
-                <small>Test AR with green box</small>
-            </a>
-            <a href="docs/QUICK_START.md" class="test-link" target="_blank">
-                ⚡ Quick Start Guide<br>
-                <small>3-step setup guide</small>
-            </a>
+    <!-- Debug Overlay -->
+    <div id="debug">
+        <h2>📡 TRACKING DATA</h2>
+        
+        <div id="status" class="lost">NOT TRACKING</div>
+        
+        <div class="row">
+            <span class="label">Position X:</span>
+            <span id="pos-x" class="value">0.000</span>
+        </div>
+        <div class="row">
+            <span class="label">Position Y:</span>
+            <span id="pos-y" class="value">0.000</span>
+        </div>
+        <div class="row">
+            <span class="label">Position Z:</span>
+            <span id="pos-z" class="value">0.000</span>
+        </div>
+        
+        <div class="row">
+            <span class="label">Rotation X:</span>
+            <span id="rot-x" class="value">0.0°</span>
+        </div>
+        <div class="row">
+            <span class="label">Rotation Y:</span>
+            <span id="rot-y" class="value">0.0°</span>
+        </div>
+        <div class="row">
+            <span class="label">Rotation Z:</span>
+            <span id="rot-z" class="value">0.0°</span>
         </div>
     </div>
 
-    <!-- A-Frame Scene with MindAR -->
+    <!-- MindAR A-Frame Scene -->
     <a-scene 
-        mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true;" 
-        color-space="sRGB" 
-        renderer="colorManagement: true, physicallyCorrectLights" 
+        mindar-image="imageTargetSrc: ./assets/targets.mind;" 
         vr-mode-ui="enabled: false" 
         device-orientation-permission-ui="enabled: false">
         
-        <a-assets>
-            <img id="target-image" src="./assets/target.png">
-        </a-assets>
-
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
         
-        <!-- AR Target 0: The game world -->
-        <a-entity mindar-image-target="targetIndex: 0">
-            
-            <!-- Ground plane (the game map) -->
-            <a-plane 
-                position="0 0 0" 
-                rotation="-90 0 0" 
-                width="2" 
-                height="2" 
-                color="#3a7d44">
-            </a-plane>
-            
-            <!-- Character (simple box for now) -->
-            <a-box 
-                id="character"
-                position="0 0.15 0" 
-                scale="0.2 0.3 0.2"
-                color="#4ecca3">
-            </a-box>
-            
+        <a-entity id="target" mindar-image-target="targetIndex: 0">
+            <a-plane color="blue" opacity="0.5" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
         </a-entity>
     </a-scene>
 
     <script>
-        console.log('🎮 WebAR TTRPG Game starting...');
-        
-        // Test menu toggle
-        const testMenuToggle = document.getElementById('test-menu-toggle');
-        const testMenuContent = document.getElementById('test-menu-content');
-        
-        testMenuToggle.addEventListener('click', () => {
-            const isVisible = testMenuContent.style.display === 'block';
-            testMenuContent.style.display = isVisible ? 'none' : 'block';
-        });
-        
-        // Close menu when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!document.getElementById('test-menu').contains(e.target)) {
-                testMenuContent.style.display = 'none';
-            }
-        });
-        
-        // Listen for AR events
-        document.querySelector('a-scene').addEventListener('loaded', () => {
+        // Get UI elements
+        const statusEl = document.getElementById('status');
+        const posX = document.getElementById('pos-x');
+        const posY = document.getElementById('pos-y');
+        const posZ = document.getElementById('pos-z');
+        const rotX = document.getElementById('rot-x');
+        const rotY = document.getElementById('rot-y');
+        const rotZ = document.getElementById('rot-z');
+
+        let isTracking = false;
+
+        // Wait for scene to load
+        const sceneEl = document.querySelector('a-scene');
+        sceneEl.addEventListener('loaded', () => {
             console.log('✅ Scene loaded');
-            
-            const target = document.querySelector('[mindar-image-target]');
-            
+
+            const target = document.getElementById('target');
+
+            // Listen for target found
             target.addEventListener('targetFound', () => {
                 console.log('✅ Target found!');
+                isTracking = true;
+                statusEl.textContent = '✅ TRACKING';
+                statusEl.className = 'tracking';
             });
-            
+
+            // Listen for target lost
             target.addEventListener('targetLost', () => {
                 console.log('❌ Target lost');
+                isTracking = false;
+                statusEl.textContent = '❌ NOT TRACKING';
+                statusEl.className = 'lost';
             });
+
+            // Update position/rotation every frame
+            setInterval(() => {
+                if (isTracking && target.object3D) {
+                    // Get world position
+                    const worldPos = new THREE.Vector3();
+                    target.object3D.getWorldPosition(worldPos);
+
+                    // Get world rotation
+                    const worldQuat = new THREE.Quaternion();
+                    target.object3D.getWorldQuaternion(worldQuat);
+                    
+                    const worldRot = new THREE.Euler();
+                    worldRot.setFromQuaternion(worldQuat);
+
+                    // Update display
+                    posX.textContent = worldPos.x.toFixed(3);
+                    posY.textContent = worldPos.y.toFixed(3);
+                    posZ.textContent = worldPos.z.toFixed(3);
+
+                    rotX.textContent = (worldRot.x * 180 / Math.PI).toFixed(1) + '°';
+                    rotY.textContent = (worldRot.y * 180 / Math.PI).toFixed(1) + '°';
+                    rotZ.textContent = (worldRot.z * 180 / Math.PI).toFixed(1) + '°';
+                }
+            }, 100);
         });
     </script>
 </body>
