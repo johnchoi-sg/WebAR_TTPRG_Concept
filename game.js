@@ -19,7 +19,7 @@ let scene, camera, renderer;
 let character, worldMap;
 let isMobile = false;
 let isARMode = false;
-let arToolkitSource, arToolkitContext, markerRoot;
+let mindarThree, anchor;
 let markerVisible = false;
 
 // Input State
@@ -46,15 +46,15 @@ let usingDeadReckoning = false;
 function setMarkerVisible(visible) {
     markerVisible = visible;
     
-    if (visible && markerRoot) {
-        // Store last known marker position/rotation
-        lastMarkerPosition.copy(markerRoot.position);
-        lastMarkerRotation.copy(markerRoot.rotation);
+    if (visible && anchor && anchor.group) {
+        // Store last known anchor position/rotation
+        lastMarkerPosition.copy(anchor.group.position);
+        lastMarkerRotation.copy(anchor.group.rotation);
         usingDeadReckoning = false;
     } else {
         // Lost marker, switch to dead reckoning
         usingDeadReckoning = true;
-        console.log('📍 Marker lost, using dead reckoning with device orientation');
+        console.log('📍 Target lost, using dead reckoning with device orientation');
     }
 }
 
@@ -125,99 +125,52 @@ function initDesktop() {
     window.addEventListener('resize', onWindowResize);
 }
 
-// Initialize AR Mode
-function initAR() {
-    console.log('Initializing AR mode...');
+// Initialize AR Mode with MindAR
+async function initAR() {
+    console.log('🚀 Initializing MindAR mode...');
     document.getElementById('ar-container').style.display = 'block';
     document.getElementById('joystick-container').style.display = 'block';
     
-    // Setup Scene
-    scene = new THREE.Scene();
+    // Create MindAR instance
+    const container = document.getElementById('ar-container');
     
-    // Setup Camera - AR.js will control this via marker
-    camera = new THREE.Camera();
-    scene.add(camera);
-    
-    // Setup Renderer
-    const canvas = document.getElementById('ar-canvas');
-    renderer = new THREE.WebGLRenderer({
-        canvas: canvas,
-        alpha: true,
-        antialias: true
-    });
-    renderer.setClearColor(new THREE.Color('lightgrey'), 0);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    
-    // Setup AR Toolkit Source (Camera)
-    arToolkitSource = new THREEx.ArToolkitSource({
-        sourceType: 'webcam',
-        sourceWidth: window.innerWidth,
-        sourceHeight: window.innerHeight,
-        displayWidth: window.innerWidth,
-        displayHeight: window.innerHeight
+    mindarThree = new window.MINDAR.IMAGE.MindARThree({
+        container: container,
+        imageTargetSrc: 'https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.2/examples/image-tracking/assets/card-example/card.mind'
     });
     
-    arToolkitSource.init(function onReady() {
-        console.log('AR Source ready!');
-        onARSourceReady();
-    }, function onError(error) {
-        console.error('AR Source Error:', error);
-        alert('Failed to access camera. Please grant camera permissions and use HTTPS.');
-    });
+    const {renderer: arRenderer, scene: arScene, camera: arCamera} = mindarThree;
     
-    // Setup AR Toolkit Context
-    arToolkitContext = new THREEx.ArToolkitContext({
-        cameraParametersUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/data/camera_para.dat',
-        detectionMode: 'mono',
-        maxDetectionRate: 60,
-        canvasWidth: window.innerWidth,
-        canvasHeight: window.innerHeight
-    });
+    // Use MindAR's renderer, scene, and camera
+    renderer = arRenderer;
+    scene = arScene;
+    camera = arCamera;
     
-    arToolkitContext.init(function onCompleted() {
-        console.log('AR Context initialized!');
-        camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-    });
-    
-    // Create Marker Root - this will control the camera position
-    markerRoot = new THREE.Group();
-    scene.add(markerRoot);
-    
-    // Setup Marker Controls - marker controls the camera, not the world
-    const markerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
-        type: 'pattern',
-        patternUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/data/patt.hiro',
-        changeMatrixMode: 'cameraTransformMatrix'
-    });
-    
-    // Track marker visibility
-    markerControls.addEventListener('markerFound', function() {
-        console.log('✅ Marker found! Camera anchored.');
-        setMarkerVisible(true);
-    });
-    
-    markerControls.addEventListener('markerLost', function() {
-        console.log('❌ Marker lost! Camera tracking lost.');
-        setMarkerVisible(false);
-    });
+    console.log('✅ MindAR initialized');
     
     // Setup Lights
     setupLights();
     
-    // Create World and Character DIRECTLY in scene (always visible, not attached to marker)
-    createWorld(scene);
-    createCharacter(scene);
+    // Create anchor (where objects attach when marker detected)
+    anchor = mindarThree.addAnchor(0);
+    console.log('✅ Anchor created');
     
-    // Position world at origin
-    if (worldMap) {
-        worldMap.position.set(0, 0, 0);
-    }
-    if (character) {
-        character.position.set(0, 0, 0);
-    }
+    // Track marker visibility
+    anchor.onTargetFound = () => {
+        console.log('✅ Target found!');
+        setMarkerVisible(true);
+    };
     
-    console.log('World and character created in scene (always visible)');
+    anchor.onTargetLost = () => {
+        console.log('❌ Target lost!');
+        setMarkerVisible(false);
+    };
+    
+    // Create World and Character attached to anchor
+    createWorld(anchor.group);
+    createCharacter(anchor.group);
+    
+    console.log('✅ World and character created on anchor');
     
     // Setup device orientation for dead reckoning
     setupDeviceOrientation();
@@ -225,26 +178,22 @@ function initAR() {
     // Setup debug panel
     setupDebugPanel();
     
-    // Handle window resize
-    window.addEventListener('resize', onARResize);
-    
-    console.log('AR initialization complete! World is always visible, marker controls camera.');
-}
-
-// AR Source Ready Handler
-function onARSourceReady() {
-    setTimeout(() => {
-        onARResize();
-    }, 1000);
-}
-
-// AR Resize Handler
-function onARResize() {
-    arToolkitSource.onResizeElement();
-    arToolkitSource.copyElementSizeTo(renderer.domElement);
-    if (arToolkitContext.arController !== null) {
-        arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+    // Start MindAR
+    try {
+        await mindarThree.start();
+        console.log('✅ MindAR started successfully!');
+    } catch (error) {
+        console.error('❌ MindAR start error:', error);
+        alert('Failed to start AR. Please grant camera permissions and use HTTPS.');
     }
+    
+    console.log('🎉 AR initialization complete!');
+}
+
+// AR Resize Handler (MindAR handles this automatically)
+function onARResize() {
+    // MindAR handles resizing automatically
+    console.log('Window resized');
 }
 
 // Setup Device Orientation for Dead Reckoning
@@ -774,11 +723,11 @@ let frameCount = 0;
 function animate() {
     requestAnimationFrame(animate);
     
-    if (isARMode && arToolkitContext && arToolkitSource && arToolkitSource.ready) {
-        arToolkitContext.update(arToolkitSource.domElement);
+    if (isARMode) {
+        // MindAR handles its own update loop internally
         
         // Apply dead reckoning if marker is lost but orientation is available
-        if (usingDeadReckoning && deviceOrientation.available && markerRoot) {
+        if (usingDeadReckoning && deviceOrientation.available && anchor) {
             applyDeadReckoning();
         }
         
@@ -787,11 +736,11 @@ function animate() {
         if (controlsInfo) {
             let statusText = '';
             if (markerVisible) {
-                statusText = `✅ Marker tracking active!<br>World anchored<br>Use joystick to move`;
+                statusText = `✅ MindAR tracking!<br>World anchored<br>Use joystick to move`;
             } else if (usingDeadReckoning && deviceOrientation.available) {
-                statusText = `📍 Dead reckoning mode<br>Using gyro/accelerometer<br>Point at marker to re-anchor`;
+                statusText = `📍 Dead reckoning mode<br>Using gyro/accelerometer<br>Point at target image`;
             } else {
-                statusText = `🔍 Point at Hiro marker...<br>World visible but not anchored`;
+                statusText = `🔍 Point at target image...<br>MindAR ready`;
             }
             controlsInfo.innerHTML = statusText;
             controlsInfo.style.color = markerVisible ? '#4ecca3' : (usingDeadReckoning ? '#ffd93d' : '#ff6b6b');
@@ -811,25 +760,25 @@ function animate() {
     
     if (!isARMode) {
         updateCamera();
+        renderer.render(scene, camera);
     }
-    
-    renderer.render(scene, camera);
+    // MindAR handles rendering in AR mode
 }
 
 // Apply Dead Reckoning using device orientation
 function applyDeadReckoning() {
-    if (!markerRoot || !deviceOrientation.available) return;
+    if (!anchor || !anchor.group || !deviceOrientation.available) return;
     
-    // Use device orientation to adjust camera/marker position
+    // Use device orientation to adjust anchor position
     // Convert device orientation to Three.js rotations
     const alpha = THREE.MathUtils.degToRad(deviceOrientation.alpha);
     const beta = THREE.MathUtils.degToRad(deviceOrientation.beta);
     const gamma = THREE.MathUtils.degToRad(deviceOrientation.gamma);
     
-    // Apply orientation to marker root (this keeps the world stable relative to device)
+    // Apply orientation to anchor group (this keeps the world stable relative to device)
     // Note: This is a simplified dead reckoning - in production you'd integrate
     // accelerometer data for position tracking too
-    markerRoot.rotation.set(
+    anchor.group.rotation.set(
         lastMarkerRotation.x + beta * 0.1,
         lastMarkerRotation.y + alpha * 0.1,
         lastMarkerRotation.z + gamma * 0.1
