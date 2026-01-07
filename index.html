@@ -208,6 +208,7 @@
         await gameController.init();
         
         // Update debug UI every frame
+        let lastLogTime = 0;
         function updateDebugUI() {
             const tracking = gameController.getARTracking().getTrackingStatus();
             
@@ -225,6 +226,20 @@
                 rotX.textContent = (rot.x * 180 / Math.PI).toFixed(1) + '°';
                 rotY.textContent = (rot.y * 180 / Math.PI).toFixed(1) + '°';
                 rotZ.textContent = (rot.z * 180 / Math.PI).toFixed(1) + '°';
+                
+                // Log tracking data every 2 seconds
+                const now = Date.now();
+                if (now - lastLogTime > 2000) {
+                    console.log('📊 Tracking Data:', {
+                        position: { x: pos.x, y: pos.y, z: pos.z },
+                        rotation: { 
+                            x: (rot.x * 180 / Math.PI).toFixed(1) + '°',
+                            y: (rot.y * 180 / Math.PI).toFixed(1) + '°',
+                            z: (rot.z * 180 / Math.PI).toFixed(1) + '°'
+                        }
+                    });
+                    lastLogTime = now;
+                }
             } else {
                 statusEl.textContent = '❌ NOT TRACKING';
                 statusEl.className = 'lost';

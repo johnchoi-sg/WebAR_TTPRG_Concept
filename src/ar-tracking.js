@@ -50,7 +50,13 @@ export class ARTracking {
         const worldRot = new THREE.Euler();
         worldRot.setFromQuaternion(worldQuat);
 
-        // Store values
+        // Check if values are reasonable
+        const magnitude = worldPos.length();
+        if (magnitude > 100) {
+            console.warn('⚠️ Large position detected:', worldPos, 'magnitude:', magnitude);
+        }
+
+        // Store values (no scaling - use raw AR data)
         this.position.copy(worldPos);
         this.rotation.copy(worldRot);
     }

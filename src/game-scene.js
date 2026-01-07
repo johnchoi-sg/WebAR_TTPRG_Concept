@@ -26,11 +26,15 @@ export class GameScene {
         // Create Three.js scene
         this.scene = new THREE.Scene();
         
-        // Create camera (orthographic for 2D-like view)
+        // Create camera with isometric view
         const aspect = window.innerWidth / window.innerHeight;
-        this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-        this.camera.position.set(0, 2, 3);
-        this.camera.lookAt(0, 0, 0);
+        this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
+        
+        // Isometric-style position (45° angle, elevated)
+        this.camera.position.set(3, 3, 3);  // Diagonal view from above
+        this.camera.lookAt(0, 0, 0);        // Look at center of board
+        
+        console.log('📷 Default camera position:', this.camera.position);
 
         // Create renderer with transparency (no depth clear)
         this.renderer = new THREE.WebGLRenderer({ 
@@ -104,18 +108,39 @@ export class GameScene {
 
     /**
      * Update camera to match AR tracking
+     * Applies inverse transform so game objects appear at marker position
      */
     updateFromARTracking(position, rotation) {
         if (!position || !rotation) return;
 
-        // Apply inverse transform to camera (so scene appears at marker position)
+        // Scale factor to normalize huge AR values (adjust if needed)
+        const SCALE = 0.001; // Convert from mm to meters (or similar)
+        
+        // Scale position
+        const scaledPos = position.clone().multiplyScalar(SCALE);
+
+        // Simple approach: Just set camera position/rotation directly
+        // Inverse transform: negate position, invert rotation
         this.camera.position.set(
-            -position.x,
-            -position.y + 2,
-            -position.z + 3
+            -scaledPos.x,
+            -scaledPos.y + 2,  // Offset up a bit
+            -scaledPos.z + 3   // Offset back a bit
         );
         
+        // Look at the origin (where the marker/objects are)
         this.camera.lookAt(0, 0, 0);
+        
+        // Re-enable auto update
+        this.camera.matrixAutoUpdate = true;
+        
+        // Log occasionally (not every frame)
+        if (Math.random() < 0.02) {
+            console.log('📷 Camera updated:', {
+                rawPos: position,
+                scaledPos: scaledPos,
+                cameraPos: this.camera.position.clone()
+            });
+        }
     }
 
     /**
@@ -124,8 +149,8 @@ export class GameScene {
     render() {
         if (!this.renderer || !this.scene || !this.camera) return;
         
-        // Clear only depth buffer, not color
-        this.renderer.clear(false, true, false);
+        // Clear both color and depth buffers
+        this.renderer.clear(true, true, true);
         
         // Render game scene
         this.renderer.render(this.scene, this.camera);

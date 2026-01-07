@@ -89,7 +89,8 @@ export class GameController {
         // Get tracking status
         const tracking = this.arTracking.getTrackingStatus();
 
-        // Update game scene camera based on AR tracking
+        // Only update camera when actively tracking
+        // (otherwise stays at default isometric view)
         if (tracking.isTracking) {
             this.gameScene.updateFromARTracking(tracking.position, tracking.rotation);
         }
