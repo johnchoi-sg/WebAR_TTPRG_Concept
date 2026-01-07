@@ -8,7 +8,7 @@ export class ARTracking {
         this.targetEntity = null;
         this.isTracking = false;
         this.position = new THREE.Vector3(0, 0, 0);
-        this.rotation = new THREE.Euler(0, 0, 0);
+        this.quaternion = new THREE.Quaternion(0, 0, 0, 1);  // Use quaternion instead of Euler
     }
 
     /**
@@ -43,12 +43,9 @@ export class ARTracking {
         const worldPos = new THREE.Vector3();
         this.targetEntity.object3D.getWorldPosition(worldPos);
 
-        // Get world rotation
+        // Get world quaternion (MindAR provides this directly)
         const worldQuat = new THREE.Quaternion();
         this.targetEntity.object3D.getWorldQuaternion(worldQuat);
-        
-        const worldRot = new THREE.Euler();
-        worldRot.setFromQuaternion(worldQuat);
 
         // Check if values are reasonable
         const magnitude = worldPos.length();
@@ -56,9 +53,9 @@ export class ARTracking {
             console.warn('⚠️ Large position detected:', worldPos, 'magnitude:', magnitude);
         }
 
-        // Store values (no scaling - use raw AR data)
+        // Store values (use quaternion directly - no Euler conversion)
         this.position.copy(worldPos);
-        this.rotation.copy(worldRot);
+        this.quaternion.copy(worldQuat);
     }
 
     /**
@@ -68,7 +65,7 @@ export class ARTracking {
         return {
             isTracking: this.isTracking,
             position: this.position.clone(),
-            rotation: this.rotation.clone()
+            quaternion: this.quaternion.clone()
         };
     }
 
@@ -80,10 +77,19 @@ export class ARTracking {
     }
 
     /**
-     * Get rotation
+     * Get quaternion
      */
-    getRotation() {
-        return this.rotation.clone();
+    getQuaternion() {
+        return this.quaternion.clone();
+    }
+    
+    /**
+     * Get rotation as Euler (for display/debugging)
+     */
+    getRotationEuler() {
+        const euler = new THREE.Euler();
+        euler.setFromQuaternion(this.quaternion);
+        return euler;
     }
 }
 

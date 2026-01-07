@@ -110,35 +110,40 @@ export class GameScene {
      * Update camera to match AR tracking
      * Applies inverse transform so game objects appear at marker position
      */
-    updateFromARTracking(position, rotation) {
-        if (!position || !rotation) return;
+    updateFromARTracking(position, quaternion) {
+        if (!position || !quaternion) return;
 
         // Scale factor to normalize huge AR values (adjust if needed)
         const SCALE = 0.001; // Convert from mm to meters (or similar)
         
-        // Scale position
-        const scaledPos = position.clone().multiplyScalar(SCALE);
-
-        // Simple approach: Just set camera position/rotation directly
-        // Inverse transform: negate position, invert rotation
-        this.camera.position.set(
-            -scaledPos.x,
-            -scaledPos.y + 2,  // Offset up a bit
-            -scaledPos.z + 3   // Offset back a bit
-        );
+        // Create inverse transform matrix
+        const matrix = new THREE.Matrix4();
+        matrix.compose(position, quaternion, new THREE.Vector3(1, 1, 1));
+        matrix.invert();
         
-        // Look at the origin (where the marker/objects are)
-        this.camera.lookAt(0, 0, 0);
+        // Decompose inverse matrix to get camera transform
+        const camPos = new THREE.Vector3();
+        const camQuat = new THREE.Quaternion();
+        const camScale = new THREE.Vector3();
+        matrix.decompose(camPos, camQuat, camScale);
         
-        // Re-enable auto update
-        this.camera.matrixAutoUpdate = true;
+        // Apply scale to position
+        camPos.multiplyScalar(SCALE);
+        
+        // Apply to camera (1:1 match with AR tracking)
+        this.camera.position.copy(camPos);
+        this.camera.quaternion.copy(camQuat);
+        
+        // Update matrix manually
+        this.camera.updateMatrix();
         
         // Log occasionally (not every frame)
         if (Math.random() < 0.02) {
             console.log('📷 Camera updated:', {
                 rawPos: position,
-                scaledPos: scaledPos,
-                cameraPos: this.camera.position.clone()
+                rawQuat: quaternion,
+                camPos: camPos.clone(),
+                camQuat: camQuat.clone()
             });
         }
     }

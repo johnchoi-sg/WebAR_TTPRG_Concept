@@ -92,7 +92,7 @@ export class GameController {
         // Only update camera when actively tracking
         // (otherwise stays at default isometric view)
         if (tracking.isTracking) {
-            this.gameScene.updateFromARTracking(tracking.position, tracking.rotation);
+            this.gameScene.updateFromARTracking(tracking.position, tracking.quaternion);
         }
 
         // Render game scene

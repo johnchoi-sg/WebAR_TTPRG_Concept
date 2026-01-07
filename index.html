@@ -142,30 +142,50 @@
         
         <div id="status" class="lost">NOT TRACKING</div>
         
+        <h3 style="margin-top: 10px; margin-bottom: 5px; font-size: 14px;">Position</h3>
         <div class="row">
-            <span class="label">Position X:</span>
+            <span class="label">X:</span>
             <span id="pos-x" class="value">0.000</span>
         </div>
         <div class="row">
-            <span class="label">Position Y:</span>
+            <span class="label">Y:</span>
             <span id="pos-y" class="value">0.000</span>
         </div>
         <div class="row">
-            <span class="label">Position Z:</span>
+            <span class="label">Z:</span>
             <span id="pos-z" class="value">0.000</span>
         </div>
         
+        <h3 style="margin-top: 10px; margin-bottom: 5px; font-size: 14px;">Rotation (Euler)</h3>
         <div class="row">
-            <span class="label">Rotation X:</span>
+            <span class="label">X:</span>
             <span id="rot-x" class="value">0.0°</span>
         </div>
         <div class="row">
-            <span class="label">Rotation Y:</span>
+            <span class="label">Y:</span>
             <span id="rot-y" class="value">0.0°</span>
         </div>
         <div class="row">
-            <span class="label">Rotation Z:</span>
+            <span class="label">Z:</span>
             <span id="rot-z" class="value">0.0°</span>
+        </div>
+        
+        <h3 style="margin-top: 10px; margin-bottom: 5px; font-size: 14px;">Rotation (Quaternion)</h3>
+        <div class="row">
+            <span class="label">X:</span>
+            <span id="quat-x" class="value">0.000</span>
+        </div>
+        <div class="row">
+            <span class="label">Y:</span>
+            <span id="quat-y" class="value">0.000</span>
+        </div>
+        <div class="row">
+            <span class="label">Z:</span>
+            <span id="quat-z" class="value">0.000</span>
+        </div>
+        <div class="row">
+            <span class="label">W:</span>
+            <span id="quat-w" class="value">1.000</span>
         </div>
     </div>
 
@@ -202,6 +222,10 @@
         const rotX = document.getElementById('rot-x');
         const rotY = document.getElementById('rot-y');
         const rotZ = document.getElementById('rot-z');
+        const quatX = document.getElementById('quat-x');
+        const quatY = document.getElementById('quat-y');
+        const quatZ = document.getElementById('quat-z');
+        const quatW = document.getElementById('quat-w');
         
         // Initialize game controller
         const gameController = new GameController();
@@ -217,25 +241,38 @@
                 statusEl.className = 'tracking';
                 
                 const pos = tracking.position;
-                const rot = tracking.rotation;
+                const quat = tracking.quaternion;
                 
+                // Convert quaternion to Euler for display (easier to read)
+                const euler = new THREE.Euler();
+                euler.setFromQuaternion(quat);
+                
+                // Update position
                 posX.textContent = pos.x.toFixed(3);
                 posY.textContent = pos.y.toFixed(3);
                 posZ.textContent = pos.z.toFixed(3);
                 
-                rotX.textContent = (rot.x * 180 / Math.PI).toFixed(1) + '°';
-                rotY.textContent = (rot.y * 180 / Math.PI).toFixed(1) + '°';
-                rotZ.textContent = (rot.z * 180 / Math.PI).toFixed(1) + '°';
+                // Update Euler rotation
+                rotX.textContent = (euler.x * 180 / Math.PI).toFixed(1) + '°';
+                rotY.textContent = (euler.y * 180 / Math.PI).toFixed(1) + '°';
+                rotZ.textContent = (euler.z * 180 / Math.PI).toFixed(1) + '°';
+                
+                // Update quaternion
+                quatX.textContent = quat.x.toFixed(3);
+                quatY.textContent = quat.y.toFixed(3);
+                quatZ.textContent = quat.z.toFixed(3);
+                quatW.textContent = quat.w.toFixed(3);
                 
                 // Log tracking data every 2 seconds
                 const now = Date.now();
                 if (now - lastLogTime > 2000) {
                     console.log('📊 Tracking Data:', {
                         position: { x: pos.x, y: pos.y, z: pos.z },
+                        quaternion: { x: quat.x, y: quat.y, z: quat.z, w: quat.w },
                         rotation: { 
-                            x: (rot.x * 180 / Math.PI).toFixed(1) + '°',
-                            y: (rot.y * 180 / Math.PI).toFixed(1) + '°',
-                            z: (rot.z * 180 / Math.PI).toFixed(1) + '°'
+                            x: (euler.x * 180 / Math.PI).toFixed(1) + '°',
+                            y: (euler.y * 180 / Math.PI).toFixed(1) + '°',
+                            z: (euler.z * 180 / Math.PI).toFixed(1) + '°'
                         }
                     });
                     lastLogTime = now;
