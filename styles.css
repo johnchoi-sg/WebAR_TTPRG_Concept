@@ -65,6 +65,110 @@ body {
     z-index: 2;
 }
 
+/* Debug Panel Styles */
+#debug-panel {
+    position: fixed;
+    top: 80px;
+    right: 10px;
+    width: 280px;
+    max-height: 80vh;
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #4ecca3;
+    border-radius: 10px;
+    z-index: 250;
+    overflow: hidden;
+    font-size: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+#debug-header {
+    background: #4ecca3;
+    color: #1a1a2e;
+    padding: 10px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#debug-close {
+    background: none;
+    border: none;
+    color: #1a1a2e;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    line-height: 1;
+}
+
+#debug-close:hover {
+    color: #ff6b6b;
+}
+
+#debug-content {
+    padding: 10px;
+    max-height: calc(80vh - 50px);
+    overflow-y: auto;
+}
+
+.debug-section {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(78, 204, 163, 0.3);
+}
+
+.debug-section:last-child {
+    border-bottom: none;
+}
+
+.debug-section h4 {
+    color: #4ecca3;
+    margin: 0 0 8px 0;
+    font-size: 13px;
+}
+
+.debug-item {
+    color: #ddd;
+    padding: 3px 0;
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Courier New', monospace;
+}
+
+.debug-item span {
+    color: #4ecca3;
+    font-weight: bold;
+}
+
+/* Debug Toggle Button */
+#debug-toggle {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 50px;
+    height: 50px;
+    background: rgba(78, 204, 163, 0.9);
+    border: 2px solid #4ecca3;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 200;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+#debug-toggle:hover {
+    background: rgba(78, 204, 163, 1);
+    transform: scale(1.1);
+}
+
+#debug-toggle:active {
+    transform: scale(0.95);
+}
+
 /* Touch Joystick Styles */
 #joystick-container {
     position: absolute;

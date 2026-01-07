@@ -219,6 +219,9 @@ function initAR() {
     // Setup device orientation for dead reckoning
     setupDeviceOrientation();
     
+    // Setup debug panel
+    setupDebugPanel();
+    
     // Handle window resize
     window.addEventListener('resize', onARResize);
     
@@ -291,6 +294,81 @@ function handleDeviceMotion(event) {
         deviceAcceleration.x = event.accelerationIncludingGravity.x || 0;
         deviceAcceleration.y = event.accelerationIncludingGravity.y || 0;
         deviceAcceleration.z = event.accelerationIncludingGravity.z || 0;
+    }
+}
+
+// Setup Debug Panel
+function setupDebugPanel() {
+    const debugToggle = document.getElementById('debug-toggle');
+    const debugPanel = document.getElementById('debug-panel');
+    const debugClose = document.getElementById('debug-close');
+    
+    if (!debugToggle || !debugPanel || !debugClose) return;
+    
+    // Show debug toggle button
+    debugToggle.style.display = 'block';
+    
+    // Toggle debug panel
+    debugToggle.addEventListener('click', () => {
+        const isVisible = debugPanel.style.display === 'block';
+        debugPanel.style.display = isVisible ? 'none' : 'block';
+        console.log('Debug panel:', isVisible ? 'hidden' : 'visible');
+    });
+    
+    // Close button
+    debugClose.addEventListener('click', () => {
+        debugPanel.style.display = 'none';
+    });
+    
+    console.log('✅ Debug panel setup complete');
+}
+
+// Update Debug Panel
+function updateDebugPanel() {
+    if (!isARMode) return;
+    
+    // Marker tracking
+    const markerStatus = markerVisible ? '✅ Tracking' : (usingDeadReckoning ? '📍 Dead Reckoning' : '❌ Lost');
+    updateDebugValue('debug-marker-status', markerStatus);
+    updateDebugValue('debug-marker-visible', markerVisible ? 'Yes' : 'No');
+    
+    // Gyroscope
+    updateDebugValue('debug-alpha', deviceOrientation.alpha.toFixed(1));
+    updateDebugValue('debug-beta', deviceOrientation.beta.toFixed(1));
+    updateDebugValue('debug-gamma', deviceOrientation.gamma.toFixed(1));
+    updateDebugValue('debug-gyro-available', deviceOrientation.available ? 'Yes' : 'No');
+    
+    // Accelerometer
+    updateDebugValue('debug-accel-x', deviceAcceleration.x.toFixed(2));
+    updateDebugValue('debug-accel-y', deviceAcceleration.y.toFixed(2));
+    updateDebugValue('debug-accel-z', deviceAcceleration.z.toFixed(2));
+    
+    // Camera position
+    if (camera) {
+        updateDebugValue('debug-cam-x', camera.position.x.toFixed(2));
+        updateDebugValue('debug-cam-y', camera.position.y.toFixed(2));
+        updateDebugValue('debug-cam-z', camera.position.z.toFixed(2));
+    }
+    
+    // Camera rotation (convert to degrees)
+    if (camera && camera.rotation) {
+        updateDebugValue('debug-rot-x', (camera.rotation.x * 180 / Math.PI).toFixed(1));
+        updateDebugValue('debug-rot-y', (camera.rotation.y * 180 / Math.PI).toFixed(1));
+        updateDebugValue('debug-rot-z', (camera.rotation.z * 180 / Math.PI).toFixed(1));
+    }
+    
+    // Character position
+    if (character) {
+        updateDebugValue('debug-char-x', character.position.x.toFixed(2));
+        updateDebugValue('debug-char-z', character.position.z.toFixed(2));
+    }
+}
+
+// Helper to update debug values
+function updateDebugValue(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = value;
     }
 }
 
@@ -642,6 +720,9 @@ function animate() {
             controlsInfo.innerHTML = statusText;
             controlsInfo.style.color = markerVisible ? '#4ecca3' : (usingDeadReckoning ? '#ffd93d' : '#ff6b6b');
         }
+        
+        // Update debug panel every frame
+        updateDebugPanel();
         
         // Log detection status every 60 frames (once per second at 60fps)
         frameCount++;

@@ -14,6 +14,59 @@
         <div id="controls-info"></div>
     </div>
     
+    <!-- Debug Panel for Mobile AR -->
+    <div id="debug-panel" style="display: none;">
+        <div id="debug-header">
+            <span>🔬 AR Debug</span>
+            <button id="debug-close">×</button>
+        </div>
+        <div id="debug-content">
+            <div class="debug-section">
+                <h4>📍 Marker Tracking</h4>
+                <div class="debug-item">Status: <span id="debug-marker-status">-</span></div>
+                <div class="debug-item">Visible: <span id="debug-marker-visible">-</span></div>
+            </div>
+            
+            <div class="debug-section">
+                <h4>📱 Gyroscope</h4>
+                <div class="debug-item">Alpha (α): <span id="debug-alpha">-</span>°</div>
+                <div class="debug-item">Beta (β): <span id="debug-beta">-</span>°</div>
+                <div class="debug-item">Gamma (γ): <span id="debug-gamma">-</span>°</div>
+                <div class="debug-item">Available: <span id="debug-gyro-available">-</span></div>
+            </div>
+            
+            <div class="debug-section">
+                <h4>📊 Accelerometer</h4>
+                <div class="debug-item">X: <span id="debug-accel-x">-</span></div>
+                <div class="debug-item">Y: <span id="debug-accel-y">-</span></div>
+                <div class="debug-item">Z: <span id="debug-accel-z">-</span></div>
+            </div>
+            
+            <div class="debug-section">
+                <h4>📷 Camera Position</h4>
+                <div class="debug-item">X: <span id="debug-cam-x">-</span></div>
+                <div class="debug-item">Y: <span id="debug-cam-y">-</span></div>
+                <div class="debug-item">Z: <span id="debug-cam-z">-</span></div>
+            </div>
+            
+            <div class="debug-section">
+                <h4>🔄 Camera Rotation</h4>
+                <div class="debug-item">X: <span id="debug-rot-x">-</span>°</div>
+                <div class="debug-item">Y: <span id="debug-rot-y">-</span>°</div>
+                <div class="debug-item">Z: <span id="debug-rot-z">-</span>°</div>
+            </div>
+            
+            <div class="debug-section">
+                <h4>🎮 Character</h4>
+                <div class="debug-item">X: <span id="debug-char-x">-</span></div>
+                <div class="debug-item">Z: <span id="debug-char-z">-</span></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Debug Toggle Button -->
+    <button id="debug-toggle" style="display: none;">🔬</button>
+    
     <!-- Touch Joystick for Mobile -->
     <div id="joystick-container" style="display: none;">
         <div id="joystick-base">
