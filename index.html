@@ -1,220 +1,108 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MindAR Examples - Minimal</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>WebAR TTRPG Game</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
         body {
             margin: 0;
-            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
         }
 
-        /* Example Selector */
-        #example-selector {
+        #info {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-        }
-
-        #example-selector select {
-            background: rgba(0, 0, 0, 0.9);
-            color: #00ff00;
-            border: 2px solid #00ff00;
-            padding: 10px 15px;
-            font-size: 14px;
-            font-family: 'Courier New', monospace;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        #example-selector select:hover {
-            background: rgba(0, 255, 0, 0.1);
-        }
-
-        /* Debug Panel */
-        #debug {
-            position: fixed;
-            top: 80px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            color: #00ff00;
-            padding: 20px;
-            border: 2px solid #00ff00;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
             border-radius: 8px;
-            font-size: 16px;
-            z-index: 10000;
-            min-width: 350px;
+            z-index: 1000;
+            font-size: 14px;
         }
 
-        h2 {
-            margin: 0 0 15px 0;
-            font-size: 18px;
-            border-bottom: 1px solid #00ff00;
-            padding-bottom: 8px;
+        #examples-link {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(100, 149, 237, 0.9);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            z-index: 1000;
+            font-size: 12px;
         }
 
-        .row {
-            display: flex;
-            justify-content: space-between;
-            margin: 10px 0;
-            padding: 8px;
-            background: rgba(0, 255, 0, 0.05);
-        }
-
-        .label {
-            color: #888;
-        }
-
-        .value {
-            color: #00ff00;
-            font-weight: bold;
-            font-size: 18px;
-        }
-
-        #status {
-            padding: 10px;
-            margin: 15px 0;
-            text-align: center;
-            font-weight: bold;
-            border-radius: 4px;
-        }
-
-        .tracking {
-            background: rgba(0, 255, 0, 0.2);
-            border: 1px solid #00ff00;
-            color: #00ff00;
-        }
-
-        .lost {
-            background: rgba(255, 0, 0, 0.2);
-            border: 1px solid #ff0000;
-            color: #ff0000;
+        #examples-link:hover {
+            background: rgba(100, 149, 237, 1);
         }
     </style>
 </head>
 <body>
-    <!-- Example Selector -->
-    <div id="example-selector">
-        <select id="example-dropdown" onchange="loadExample(this.value)">
-            <option value="index.html">Minimal</option>
-            <option value="examples/example-basic.html">Basic</option>
-            <option value="examples/example-multi-targets.html">Multi-Targets</option>
-            <option value="examples/example-multi-tracks.html">Multi-Tracks</option>
-            <option value="examples/example-custom-ui.html">Custom UI</option>
-            <option value="examples/example-events.html">Events Handling</option>
-            <option value="examples/example-interactive.html">Interactive</option>
-        </select>
+    <div id="info">
+        🎮 WebAR TTRPG Game<br>
+        <small>Point camera at marker</small>
     </div>
 
-    <!-- Debug Overlay -->
-    <div id="debug">
-        <h2>📡 MINIMAL EXAMPLE</h2>
-        
-        <div id="status" class="lost">NOT TRACKING</div>
-        
-        <div class="row">
-            <span class="label">Position X:</span>
-            <span id="pos-x" class="value">0.000</span>
-        </div>
-        <div class="row">
-            <span class="label">Position Y:</span>
-            <span id="pos-y" class="value">0.000</span>
-        </div>
-        <div class="row">
-            <span class="label">Position Z:</span>
-            <span id="pos-z" class="value">0.000</span>
-        </div>
-        
-        <div class="row">
-            <span class="label">Rotation X:</span>
-            <span id="rot-x" class="value">0.0°</span>
-        </div>
-        <div class="row">
-            <span class="label">Rotation Y:</span>
-            <span id="rot-y" class="value">0.0°</span>
-        </div>
-        <div class="row">
-            <span class="label">Rotation Z:</span>
-            <span id="rot-z" class="value">0.0°</span>
-        </div>
-    </div>
+    <a href="examples/example-minimal.html" id="examples-link">
+        📚 View Examples
+    </a>
 
-    <!-- MindAR A-Frame Scene -->
+    <!-- A-Frame Scene with MindAR -->
     <a-scene 
         mindar-image="imageTargetSrc: ./assets/targets.mind;" 
+        color-space="sRGB" 
+        renderer="colorManagement: true, physicallyCorrectLights" 
         vr-mode-ui="enabled: false" 
         device-orientation-permission-ui="enabled: false">
         
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
         
+        <!-- AR Target 0: The game world -->
         <a-entity id="target" mindar-image-target="targetIndex: 0">
-            <a-plane color="blue" opacity="0.5" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
+            
+            <!-- Ground plane (the game map) -->
+            <a-plane 
+                position="0 0 0" 
+                rotation="-90 0 0" 
+                width="2" 
+                height="2" 
+                color="#3a7d44">
+            </a-plane>
+            
+            <!-- Character (simple box for now) -->
+            <a-box 
+                id="character"
+                position="0 0.15 0" 
+                scale="0.2 0.3 0.2"
+                color="#4ecca3">
+            </a-box>
+            
         </a-entity>
     </a-scene>
 
     <script>
-        // Example selector
-        function loadExample(url) {
-            window.location.href = url;
-        }
-
-        // Get UI elements
-        const statusEl = document.getElementById('status');
-        const posX = document.getElementById('pos-x');
-        const posY = document.getElementById('pos-y');
-        const posZ = document.getElementById('pos-z');
-        const rotX = document.getElementById('rot-x');
-        const rotY = document.getElementById('rot-y');
-        const rotZ = document.getElementById('rot-z');
-
-        let isTracking = false;
-
-        // Wait for scene to load
-        const sceneEl = document.querySelector('a-scene');
-        sceneEl.addEventListener('loaded', () => {
-            console.log('✅ Minimal example loaded');
-
+        console.log('🎮 WebAR TTRPG Game starting...');
+        
+        // Listen for AR events
+        document.querySelector('a-scene').addEventListener('loaded', () => {
+            console.log('✅ Scene loaded');
+            
             const target = document.getElementById('target');
-
+            
             target.addEventListener('targetFound', () => {
                 console.log('✅ Target found!');
-                isTracking = true;
-                statusEl.textContent = '✅ TRACKING';
-                statusEl.className = 'tracking';
             });
-
+            
             target.addEventListener('targetLost', () => {
                 console.log('❌ Target lost');
-                isTracking = false;
-                statusEl.textContent = '❌ NOT TRACKING';
-                statusEl.className = 'lost';
             });
-
-            // Update position/rotation every frame
-            setInterval(() => {
-                if (isTracking && target.object3D) {
-                    const worldPos = new THREE.Vector3();
-                    target.object3D.getWorldPosition(worldPos);
-
-                    const worldQuat = new THREE.Quaternion();
-                    target.object3D.getWorldQuaternion(worldQuat);
-                    
-                    const worldRot = new THREE.Euler();
-                    worldRot.setFromQuaternion(worldQuat);
-
-                    posX.textContent = worldPos.x.toFixed(3);
-                    posY.textContent = worldPos.y.toFixed(3);
-                    posZ.textContent = worldPos.z.toFixed(3);
-
-                    rotX.textContent = (worldRot.x * 180 / Math.PI).toFixed(1) + '°';
-                    rotY.textContent = (worldRot.y * 180 / Math.PI).toFixed(1) + '°';
-                    rotZ.textContent = (worldRot.z * 180 / Math.PI).toFixed(1) + '°';
-                }
-            }, 100);
         });
     </script>
 </body>
