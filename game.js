@@ -20,11 +20,17 @@ let character, worldMap;
 let isMobile = false;
 let isARMode = false;
 let arToolkitSource, arToolkitContext, markerRoot;
+let markerVisible = false;
 
 // Input State
 let keys = {};
 let joystickActive = false;
 let joystickVector = { x: 0, y: 0 };
+
+// Update marker visibility flag
+function setMarkerVisible(visible) {
+    markerVisible = visible;
+}
 
 // Initialize the game
 function init() {
@@ -102,7 +108,7 @@ function initAR() {
     // Setup Scene
     scene = new THREE.Scene();
     
-    // Setup Camera
+    // Setup Camera - AR.js will control this via marker
     camera = new THREE.Camera();
     scene.add(camera);
     
@@ -148,43 +154,49 @@ function initAR() {
         camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
     });
     
-    // Create Marker Root (anchor point)
+    // Create Marker Root - this will control the camera position
     markerRoot = new THREE.Group();
-    markerRoot.visible = false; // Hide until marker detected
     scene.add(markerRoot);
     
-    // Setup Marker Controls
+    // Setup Marker Controls - marker controls the camera, not the world
     const markerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
         type: 'pattern',
         patternUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/data/patt.hiro',
         changeMatrixMode: 'cameraTransformMatrix'
     });
     
-    // Add marker detection event listeners
-    markerRoot.addEventListener('markerFound', function() {
-        console.log('Marker found!');
-        markerRoot.visible = true;
+    // Track marker visibility
+    markerControls.addEventListener('markerFound', function() {
+        console.log('✅ Marker found! Camera anchored.');
+        setMarkerVisible(true);
     });
     
-    markerRoot.addEventListener('markerLost', function() {
-        console.log('Marker lost!');
-        markerRoot.visible = false;
+    markerControls.addEventListener('markerLost', function() {
+        console.log('❌ Marker lost! Camera tracking lost.');
+        setMarkerVisible(false);
     });
     
     // Setup Lights
     setupLights();
     
-    // Create World and Character (attached to marker) - LARGER for visibility
-    createWorld(markerRoot);
-    createCharacter(markerRoot);
+    // Create World and Character DIRECTLY in scene (always visible, not attached to marker)
+    createWorld(scene);
+    createCharacter(scene);
     
-    // Scale up the entire marker root for better visibility
-    markerRoot.scale.set(2, 2, 2);
+    // Position world at origin
+    if (worldMap) {
+        worldMap.position.set(0, 0, 0);
+    }
+    if (character) {
+        character.position.set(0, 0, 0);
+    }
+    
+    console.log('World and character created in scene (always visible)');
     
     // Handle window resize
     window.addEventListener('resize', onARResize);
     
-    console.log('AR initialization complete!');
+    console.log('AR initialization complete! World is always visible, marker controls camera.');
 }
 
 // AR Source Ready Handler
@@ -525,6 +537,7 @@ function onWindowResize() {
 }
 
 // Animation Loop
+let frameCount = 0;
 function animate() {
     requestAnimationFrame(animate);
     
@@ -532,15 +545,18 @@ function animate() {
         arToolkitContext.update(arToolkitSource.domElement);
         
         // Update debug info
-        if (markerRoot) {
-            const markerVisible = markerRoot.visible;
-            const controlsInfo = document.getElementById('controls-info');
-            if (controlsInfo) {
-                controlsInfo.textContent = markerVisible ? 
-                    '✅ Marker detected! Use joystick to move.' : 
-                    '🔍 Searching for marker...';
-                controlsInfo.style.color = markerVisible ? '#4ecca3' : '#ff6b6b';
-            }
+        const controlsInfo = document.getElementById('controls-info');
+        if (controlsInfo) {
+            controlsInfo.innerHTML = markerVisible ? 
+                `✅ Marker tracking active!<br>World always visible<br>Use joystick to move` : 
+                '🔍 Point at Hiro marker...<br>World visible but not anchored';
+            controlsInfo.style.color = markerVisible ? '#4ecca3' : '#ff6b6b';
+        }
+        
+        // Log detection status every 60 frames (once per second at 60fps)
+        frameCount++;
+        if (frameCount % 60 === 0) {
+            console.log(`Frame ${frameCount}: Marker tracking = ${markerVisible}`);
         }
     }
     
