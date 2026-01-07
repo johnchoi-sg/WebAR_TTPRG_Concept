@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desktop Mode Test - WebAR TTRPG</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background: #1a1a2e;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            max-width: 350px;
+        }
+        #info h2 {
+            color: #4ecca3;
+            margin-bottom: 10px;
+        }
+        #info ul {
+            list-style: none;
+            padding: 0;
+        }
+        #info li {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        #info li:last-child {
+            border-bottom: none;
+        }
+        .key {
+            background: #4ecca3;
+            color: #1a1a2e;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        #stats {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>🖥️ Desktop Mode Test</h2>
+        <ul>
+            <li><span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span> Arrow Keys</li>
+            <li><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> WASD Keys</li>
+            <li>Camera follows character</li>
+            <li>Isometric top-down view</li>
+        </ul>
+    </div>
+    
+    <div id="stats">
+        <div>Position: <span id="pos">0, 0</span></div>
+        <div>Rotation: <span id="rot">0°</span></div>
+        <div>FPS: <span id="fps">60</span></div>
+    </div>
+    
+    <div id="container"></div>
+
+    <script>
+        // Force desktop mode for testing
+        const CONFIG = {
+            character: { speed: 0.05, size: 0.3 },
+            camera: { distance: 8, height: 6, angle: Math.PI / 4 },
+            world: { size: 5 }
+        };
+
+        let scene, camera, renderer, character, worldMap;
+        let keys = {};
+        let lastTime = performance.now();
+        let frames = 0;
+        let fps = 60;
+
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+            scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.camera.left = -10;
+            directionalLight.shadow.camera.right = 10;
+            directionalLight.shadow.camera.top = 10;
+            directionalLight.shadow.camera.bottom = -10;
+            scene.add(directionalLight);
+
+            // Create world and character
+            createWorld();
+            createCharacter();
+            updateCamera();
+
+            // Controls
+            window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+            window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+            window.addEventListener('resize', onWindowResize);
+
+            animate();
+        }
+
+        function createWorld() {
+            const worldGroup = new THREE.Group();
+
+            // Ground
+            const groundGeometry = new THREE.PlaneGeometry(CONFIG.world.size, CONFIG.world.size);
+            const groundMaterial = new THREE.MeshStandardMaterial({
+                color: 0x3a7d44,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            worldGroup.add(ground);
+
+            // Grid
+            const gridHelper = new THREE.GridHelper(CONFIG.world.size, 10, 0x000000, 0x444444);
+            gridHelper.position.y = 0.01;
+            worldGroup.add(gridHelper);
+
+            // Trees
+            for (let i = 0; i < 5; i++) {
+                const tree = createTree();
+                tree.position.set(
+                    (Math.random() - 0.5) * (CONFIG.world.size - 1),
+                    0,
+                    (Math.random() - 0.5) * (CONFIG.world.size - 1)
+                );
+                worldGroup.add(tree);
+            }
+
+            // Rocks
+            for (let i = 0; i < 3; i++) {
+                const rock = createRock();
+                rock.position.set(
+                    (Math.random() - 0.5) * (CONFIG.world.size - 1),
+                    0.1,
+                    (Math.random() - 0.5) * (CONFIG.world.size - 1)
+                );
+                worldGroup.add(rock);
+            }
+
+            worldMap = worldGroup;
+            scene.add(worldGroup);
+        }
+
+        function createTree() {
+            const treeGroup = new THREE.Group();
+            const trunkGeometry = new THREE.CylinderGeometry(0.1, 0.15, 0.6, 8);
+            const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.y = 0.3;
+            trunk.castShadow = true;
+            treeGroup.add(trunk);
+
+            const foliageGeometry = new THREE.ConeGeometry(0.4, 0.8, 8);
+            const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x228b22 });
+            const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+            foliage.position.y = 0.9;
+            foliage.castShadow = true;
+            treeGroup.add(foliage);
+
+            return treeGroup;
+        }
+
+        function createRock() {
+            const geometry = new THREE.DodecahedronGeometry(0.2, 0);
+            const material = new THREE.MeshStandardMaterial({ color: 0x808080 });
+            const rock = new THREE.Mesh(geometry, material);
+            rock.castShadow = true;
+            rock.receiveShadow = true;
+            return rock;
+        }
+
+        function createCharacter() {
+            const characterGroup = new THREE.Group();
+
+            // Body (cylinder + spheres to create capsule shape)
+            const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x4ecca3 });
+            
+            // Main body cylinder
+            const bodyGeometry = new THREE.CylinderGeometry(CONFIG.character.size * 0.4, CONFIG.character.size * 0.4, CONFIG.character.size * 0.8, 8);
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = CONFIG.character.size * 1.2;
+            body.castShadow = true;
+            characterGroup.add(body);
+            
+            // Top sphere (capsule top)
+            const topSphereGeometry = new THREE.SphereGeometry(CONFIG.character.size * 0.4, 8, 8);
+            const topSphere = new THREE.Mesh(topSphereGeometry, bodyMaterial);
+            topSphere.position.y = CONFIG.character.size * 1.6;
+            topSphere.castShadow = true;
+            characterGroup.add(topSphere);
+            
+            // Bottom sphere (capsule bottom)
+            const bottomSphere = new THREE.Mesh(topSphereGeometry, bodyMaterial);
+            bottomSphere.position.y = CONFIG.character.size * 0.8;
+            bottomSphere.castShadow = true;
+            characterGroup.add(bottomSphere);
+
+            const headGeometry = new THREE.SphereGeometry(CONFIG.character.size * 0.5, 16, 16);
+            const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = CONFIG.character.size * 2.2;
+            head.castShadow = true;
+            characterGroup.add(head);
+
+            const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+            const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.1, CONFIG.character.size * 2.3, CONFIG.character.size * 0.4);
+            characterGroup.add(leftEye);
+
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.1, CONFIG.character.size * 2.3, CONFIG.character.size * 0.4);
+            characterGroup.add(rightEye);
+
+            character = characterGroup;
+            scene.add(characterGroup);
+        }
+
+        function updateCharacter() {
+            let moveX = 0, moveZ = 0;
+
+            if (keys['arrowup'] || keys['w']) moveZ -= 1;
+            if (keys['arrowdown'] || keys['s']) moveZ += 1;
+            if (keys['arrowleft'] || keys['a']) moveX -= 1;
+            if (keys['arrowright'] || keys['d']) moveX += 1;
+
+            if (moveX !== 0 && moveZ !== 0) {
+                moveX *= 0.707;
+                moveZ *= 0.707;
+            }
+
+            const newX = character.position.x + moveX * CONFIG.character.speed;
+            const newZ = character.position.z + moveZ * CONFIG.character.speed;
+
+            const halfSize = CONFIG.world.size / 2 - CONFIG.character.size;
+            character.position.x = Math.max(-halfSize, Math.min(halfSize, newX));
+            character.position.z = Math.max(-halfSize, Math.min(halfSize, newZ));
+
+            if (moveX !== 0 || moveZ !== 0) {
+                character.rotation.y = Math.atan2(moveX, moveZ);
+            }
+
+            // Update stats
+            document.getElementById('pos').textContent = 
+                `${character.position.x.toFixed(2)}, ${character.position.z.toFixed(2)}`;
+            document.getElementById('rot').textContent = 
+                `${(character.rotation.y * 180 / Math.PI).toFixed(0)}°`;
+        }
+
+        function updateCamera() {
+            // Camera positioned behind and above character
+            const offset = new THREE.Vector3(
+                0,
+                CONFIG.camera.height,
+                CONFIG.camera.distance
+            );
+            camera.position.copy(character.position).add(offset);
+            camera.lookAt(character.position);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            updateCharacter();
+            updateCamera();
+            renderer.render(scene, camera);
+
+            // FPS counter
+            frames++;
+            const currentTime = performance.now();
+            if (currentTime >= lastTime + 1000) {
+                fps = Math.round((frames * 1000) / (currentTime - lastTime));
+                document.getElementById('fps').textContent = fps;
+                frames = 0;
+                lastTime = currentTime;
+            }
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
+

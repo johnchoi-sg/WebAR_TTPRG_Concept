@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Marker - Hiro Pattern</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4ecca3;
+            padding-bottom: 10px;
+        }
+        .marker-display {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #fafafa;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+        }
+        .marker-display img {
+            max-width: 400px;
+            width: 100%;
+            border: 5px solid white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .instructions {
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .instructions h2 {
+            color: #2e7d32;
+            margin-top: 0;
+        }
+        .instructions ol {
+            line-height: 1.8;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #4ecca3;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 5px;
+            font-weight: bold;
+        }
+        .button:hover {
+            background: #3db88f;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 AR Marker for WebAR TTRPG Game</h1>
+        
+        <div class="marker-display">
+            <h2>Hiro Marker Pattern</h2>
+            <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" alt="Hiro AR Marker">
+            <p><a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" class="button" download>Download Marker</a></p>
+        </div>
+        
+        <div class="instructions">
+            <h2>📱 How to Use the AR Marker</h2>
+            <ol>
+                <li><strong>Download or Print</strong>: Save the marker image above or print it on paper</li>
+                <li><strong>Size Matters</strong>: Print at least 10cm x 10cm (4" x 4") for best detection</li>
+                <li><strong>Keep it Flat</strong>: Place the marker on a flat surface like a table or floor</li>
+                <li><strong>Good Lighting</strong>: Ensure the marker is well-lit with no glare or shadows</li>
+                <li><strong>Point Camera</strong>: Open the game on your mobile device and point camera at marker</li>
+                <li><strong>Wait for Detection</strong>: The game world will appear when marker is detected</li>
+            </ol>
+        </div>
+        
+        <div class="warning">
+            <strong>⚠️ Important Tips:</strong>
+            <ul>
+                <li>The black border around the marker is essential - don't crop it!</li>
+                <li>Keep the marker flat and avoid wrinkles or folds</li>
+                <li>Avoid reflective surfaces that might cause glare</li>
+                <li>The marker should be clearly visible in the camera frame</li>
+                <li>If detection fails, try adjusting distance (30-100cm works best)</li>
+            </ul>
+        </div>
+        
+        <h2>🎮 Ready to Play?</h2>
+        <p>Once you have your marker ready:</p>
+        <a href="index.html" class="button">Launch Game</a>
+        
+        <h2>🖥️ Desktop Mode</h2>
+        <p>No marker needed for desktop! Just open the game and use arrow keys or WASD to play.</p>
+    </div>
+</body>
+</html>
+

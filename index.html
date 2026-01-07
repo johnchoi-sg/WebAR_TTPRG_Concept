@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>WebAR TTRPG Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/three.js/build/ar-threex.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="info">
+        <div id="device-info">Detecting device...</div>
+        <div id="controls-info"></div>
+    </div>
+    
+    <!-- Touch Joystick for Mobile -->
+    <div id="joystick-container" style="display: none;">
+        <div id="joystick-base">
+            <div id="joystick-stick"></div>
+        </div>
+    </div>
+
+    <!-- Desktop Renderer Container -->
+    <div id="desktop-container"></div>
+    
+    <!-- AR Container for Mobile -->
+    <div id="ar-container" style="display: none;">
+        <video id="ar-video" autoplay playsinline></video>
+        <canvas id="ar-canvas"></canvas>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
+

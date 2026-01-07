@@ -1,0 +1,519 @@
+// Game Configuration
+const CONFIG = {
+    character: {
+        speed: 0.05,
+        size: 0.3
+    },
+    camera: {
+        distance: 8,  // Distance behind character
+        height: 6,    // Height above character
+        angle: Math.PI / 4 // Reserved for future use
+    },
+    world: {
+        size: 5
+    }
+};
+
+// Global Game State
+let scene, camera, renderer;
+let character, worldMap;
+let isMobile = false;
+let isARMode = false;
+let arToolkitSource, arToolkitContext, markerRoot;
+
+// Input State
+let keys = {};
+let joystickActive = false;
+let joystickVector = { x: 0, y: 0 };
+
+// Initialize the game
+function init() {
+    detectDevice();
+    
+    if (isMobile) {
+        initAR();
+    } else {
+        initDesktop();
+    }
+    
+    setupControls();
+    animate();
+}
+
+// Detect if device is mobile
+function detectDevice() {
+    isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    const deviceInfo = document.getElementById('device-info');
+    const controlsInfo = document.getElementById('controls-info');
+    
+    if (isMobile) {
+        deviceInfo.textContent = '📱 Mobile Device - AR Mode';
+        controlsInfo.textContent = 'Point camera at AR marker. Use joystick to move character.';
+        isARMode = true;
+    } else {
+        deviceInfo.textContent = '🖥️ Desktop Mode';
+        controlsInfo.textContent = 'Use Arrow Keys or WASD to move character.';
+        isARMode = false;
+    }
+}
+
+// Initialize Desktop Mode
+function initDesktop() {
+    // Setup Scene
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1a1a2e);
+    
+    // Setup Camera (Isometric view)
+    camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+    );
+    
+    // Setup Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.getElementById('desktop-container').appendChild(renderer.domElement);
+    
+    // Setup Lights
+    setupLights();
+    
+    // Create World and Character
+    createWorld();
+    createCharacter();
+    
+    // Position camera for isometric view
+    updateCamera();
+    
+    // Handle window resize
+    window.addEventListener('resize', onWindowResize);
+}
+
+// Initialize AR Mode
+function initAR() {
+    document.getElementById('ar-container').style.display = 'block';
+    document.getElementById('joystick-container').style.display = 'block';
+    
+    // Setup Scene
+    scene = new THREE.Scene();
+    
+    // Setup Camera
+    camera = new THREE.Camera();
+    scene.add(camera);
+    
+    // Setup Renderer
+    const canvas = document.getElementById('ar-canvas');
+    renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        alpha: true,
+        antialias: true
+    });
+    renderer.setClearColor(new THREE.Color('lightgrey'), 0);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    
+    // Setup AR Toolkit Source (Camera)
+    arToolkitSource = new THREEx.ArToolkitSource({
+        sourceType: 'webcam'
+    });
+    
+    arToolkitSource.init(function onReady() {
+        onARSourceReady();
+    }, function onError(error) {
+        console.error('AR Source Error:', error);
+        alert('Failed to access camera. Please grant camera permissions.');
+    });
+    
+    // Setup AR Toolkit Context
+    arToolkitContext = new THREEx.ArToolkitContext({
+        cameraParametersUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/data/camera_para.dat',
+        detectionMode: 'mono'
+    });
+    
+    arToolkitContext.init(function onCompleted() {
+        camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+    });
+    
+    // Create Marker Root (anchor point)
+    markerRoot = new THREE.Group();
+    scene.add(markerRoot);
+    
+    // Setup Marker Controls
+    const markerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+        type: 'pattern',
+        patternUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/data/patt.hiro',
+        changeMatrixMode: 'cameraTransformMatrix'
+    });
+    
+    // Setup Lights
+    setupLights();
+    
+    // Create World and Character (attached to marker)
+    createWorld(markerRoot);
+    createCharacter(markerRoot);
+    
+    // Handle window resize
+    window.addEventListener('resize', onARResize);
+}
+
+// AR Source Ready Handler
+function onARSourceReady() {
+    setTimeout(() => {
+        onARResize();
+    }, 1000);
+}
+
+// AR Resize Handler
+function onARResize() {
+    arToolkitSource.onResizeElement();
+    arToolkitSource.copyElementSizeTo(renderer.domElement);
+    if (arToolkitContext.arController !== null) {
+        arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+    }
+}
+
+// Setup Lights
+function setupLights() {
+    // Ambient Light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    
+    // Directional Light (Sun)
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(5, 10, 5);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.camera.left = -10;
+    directionalLight.shadow.camera.right = 10;
+    directionalLight.shadow.camera.top = 10;
+    directionalLight.shadow.camera.bottom = -10;
+    scene.add(directionalLight);
+}
+
+// Create World Map
+function createWorld(parent = scene) {
+    const worldGroup = new THREE.Group();
+    
+    // Ground plane (map)
+    const groundGeometry = new THREE.PlaneGeometry(CONFIG.world.size, CONFIG.world.size);
+    const groundMaterial = new THREE.MeshStandardMaterial({
+        color: 0x3a7d44,
+        roughness: 0.8,
+        metalness: 0.2
+    });
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    worldGroup.add(ground);
+    
+    // Add grid lines
+    const gridHelper = new THREE.GridHelper(CONFIG.world.size, 10, 0x000000, 0x444444);
+    gridHelper.position.y = 0.01;
+    worldGroup.add(gridHelper);
+    
+    // Add some terrain features (trees, rocks)
+    addTerrainFeatures(worldGroup);
+    
+    // Add border
+    const borderGeometry = new THREE.BoxGeometry(CONFIG.world.size + 0.2, 0.3, 0.1);
+    const borderMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+    
+    const borders = [
+        { pos: [0, 0.15, CONFIG.world.size / 2 + 0.05], rot: [0, 0, 0] },
+        { pos: [0, 0.15, -CONFIG.world.size / 2 - 0.05], rot: [0, 0, 0] },
+        { pos: [CONFIG.world.size / 2 + 0.05, 0.15, 0], rot: [0, Math.PI / 2, 0] },
+        { pos: [-CONFIG.world.size / 2 - 0.05, 0.15, 0], rot: [0, Math.PI / 2, 0] }
+    ];
+    
+    borders.forEach(b => {
+        const border = new THREE.Mesh(borderGeometry, borderMaterial);
+        border.position.set(...b.pos);
+        border.rotation.set(...b.rot);
+        border.castShadow = true;
+        border.receiveShadow = true;
+        worldGroup.add(border);
+    });
+    
+    worldMap = worldGroup;
+    parent.add(worldGroup);
+}
+
+// Add terrain features
+function addTerrainFeatures(parent) {
+    // Add trees
+    for (let i = 0; i < 5; i++) {
+        const tree = createTree();
+        tree.position.set(
+            (Math.random() - 0.5) * (CONFIG.world.size - 1),
+            0,
+            (Math.random() - 0.5) * (CONFIG.world.size - 1)
+        );
+        parent.add(tree);
+    }
+    
+    // Add rocks
+    for (let i = 0; i < 3; i++) {
+        const rock = createRock();
+        rock.position.set(
+            (Math.random() - 0.5) * (CONFIG.world.size - 1),
+            0.1,
+            (Math.random() - 0.5) * (CONFIG.world.size - 1)
+        );
+        parent.add(rock);
+    }
+}
+
+// Create a simple tree
+function createTree() {
+    const treeGroup = new THREE.Group();
+    
+    // Trunk
+    const trunkGeometry = new THREE.CylinderGeometry(0.1, 0.15, 0.6, 8);
+    const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+    trunk.position.y = 0.3;
+    trunk.castShadow = true;
+    treeGroup.add(trunk);
+    
+    // Foliage
+    const foliageGeometry = new THREE.ConeGeometry(0.4, 0.8, 8);
+    const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x228b22 });
+    const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+    foliage.position.y = 0.9;
+    foliage.castShadow = true;
+    treeGroup.add(foliage);
+    
+    return treeGroup;
+}
+
+// Create a simple rock
+function createRock() {
+    const geometry = new THREE.DodecahedronGeometry(0.2, 0);
+    const material = new THREE.MeshStandardMaterial({ color: 0x808080 });
+    const rock = new THREE.Mesh(geometry, material);
+    rock.castShadow = true;
+    rock.receiveShadow = true;
+    return rock;
+}
+
+// Create Character
+function createCharacter(parent = scene) {
+    const characterGroup = new THREE.Group();
+    
+    // Body (cylinder + spheres to create capsule shape)
+    const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x4ecca3 });
+    
+    // Main body cylinder
+    const bodyGeometry = new THREE.CylinderGeometry(CONFIG.character.size * 0.4, CONFIG.character.size * 0.4, CONFIG.character.size * 0.8, 8);
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.position.y = CONFIG.character.size * 1.2;
+    body.castShadow = true;
+    characterGroup.add(body);
+    
+    // Top sphere (capsule top)
+    const topSphereGeometry = new THREE.SphereGeometry(CONFIG.character.size * 0.4, 8, 8);
+    const topSphere = new THREE.Mesh(topSphereGeometry, bodyMaterial);
+    topSphere.position.y = CONFIG.character.size * 1.6;
+    topSphere.castShadow = true;
+    characterGroup.add(topSphere);
+    
+    // Bottom sphere (capsule bottom)
+    const bottomSphere = new THREE.Mesh(topSphereGeometry, bodyMaterial);
+    bottomSphere.position.y = CONFIG.character.size * 0.8;
+    bottomSphere.castShadow = true;
+    characterGroup.add(bottomSphere);
+    
+    // Head
+    const headGeometry = new THREE.SphereGeometry(CONFIG.character.size * 0.5, 16, 16);
+    const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+    const head = new THREE.Mesh(headGeometry, headMaterial);
+    head.position.y = CONFIG.character.size * 2.2;
+    head.castShadow = true;
+    characterGroup.add(head);
+    
+    // Eyes
+    const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+    const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+    
+    const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    leftEye.position.set(-0.1, CONFIG.character.size * 2.3, CONFIG.character.size * 0.4);
+    characterGroup.add(leftEye);
+    
+    const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    rightEye.position.set(0.1, CONFIG.character.size * 2.3, CONFIG.character.size * 0.4);
+    characterGroup.add(rightEye);
+    
+    // Position character at center
+    characterGroup.position.set(0, 0, 0);
+    
+    character = characterGroup;
+    parent.add(characterGroup);
+}
+
+// Setup Controls
+function setupControls() {
+    if (isARMode) {
+        setupTouchJoystick();
+    } else {
+        setupKeyboardControls();
+    }
+}
+
+// Setup Keyboard Controls
+function setupKeyboardControls() {
+    window.addEventListener('keydown', (e) => {
+        keys[e.key.toLowerCase()] = true;
+    });
+    
+    window.addEventListener('keyup', (e) => {
+        keys[e.key.toLowerCase()] = false;
+    });
+}
+
+// Setup Touch Joystick
+function setupTouchJoystick() {
+    const joystickBase = document.getElementById('joystick-base');
+    const joystickStick = document.getElementById('joystick-stick');
+    
+    let startX = 0, startY = 0;
+    const maxDistance = 35; // pixels
+    
+    function handleStart(e) {
+        e.preventDefault();
+        joystickActive = true;
+        const rect = joystickBase.getBoundingClientRect();
+        startX = rect.left + rect.width / 2;
+        startY = rect.top + rect.height / 2;
+    }
+    
+    function handleMove(e) {
+        if (!joystickActive) return;
+        e.preventDefault();
+        
+        const touch = e.touches ? e.touches[0] : e;
+        const deltaX = touch.clientX - startX;
+        const deltaY = touch.clientY - startY;
+        
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const angle = Math.atan2(deltaY, deltaX);
+        
+        const limitedDistance = Math.min(distance, maxDistance);
+        const x = Math.cos(angle) * limitedDistance;
+        const y = Math.sin(angle) * limitedDistance;
+        
+        joystickStick.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+        
+        // Normalize joystick vector
+        joystickVector.x = deltaX / maxDistance;
+        joystickVector.y = deltaY / maxDistance;
+        
+        // Clamp values
+        joystickVector.x = Math.max(-1, Math.min(1, joystickVector.x));
+        joystickVector.y = Math.max(-1, Math.min(1, joystickVector.y));
+    }
+    
+    function handleEnd(e) {
+        e.preventDefault();
+        joystickActive = false;
+        joystickStick.style.transform = 'translate(-50%, -50%)';
+        joystickVector.x = 0;
+        joystickVector.y = 0;
+    }
+    
+    // Touch events
+    joystickBase.addEventListener('touchstart', handleStart);
+    joystickBase.addEventListener('touchmove', handleMove);
+    joystickBase.addEventListener('touchend', handleEnd);
+    
+    // Mouse events (for testing on desktop)
+    joystickBase.addEventListener('mousedown', handleStart);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+}
+
+// Update Character Position
+function updateCharacter() {
+    if (!character) return;
+    
+    let moveX = 0;
+    let moveZ = 0;
+    
+    if (isARMode) {
+        // Use joystick input
+        moveX = joystickVector.x;
+        moveZ = joystickVector.y;
+    } else {
+        // Use keyboard input
+        if (keys['arrowup'] || keys['w']) moveZ -= 1;
+        if (keys['arrowdown'] || keys['s']) moveZ += 1;
+        if (keys['arrowleft'] || keys['a']) moveX -= 1;
+        if (keys['arrowright'] || keys['d']) moveX += 1;
+    }
+    
+    // Normalize diagonal movement
+    if (moveX !== 0 && moveZ !== 0) {
+        moveX *= 0.707;
+        moveZ *= 0.707;
+    }
+    
+    // Apply movement
+    const newX = character.position.x + moveX * CONFIG.character.speed;
+    const newZ = character.position.z + moveZ * CONFIG.character.speed;
+    
+    // Boundary checking
+    const halfSize = CONFIG.world.size / 2 - CONFIG.character.size;
+    character.position.x = Math.max(-halfSize, Math.min(halfSize, newX));
+    character.position.z = Math.max(-halfSize, Math.min(halfSize, newZ));
+    
+    // Rotate character to face movement direction
+    if (moveX !== 0 || moveZ !== 0) {
+        const angle = Math.atan2(moveX, moveZ);
+        character.rotation.y = angle;
+    }
+}
+
+// Update Camera (Desktop only)
+function updateCamera() {
+    if (!isARMode && character && camera) {
+        // Isometric camera follow - positioned behind and above character
+        const offset = new THREE.Vector3(
+            0,
+            CONFIG.camera.height,
+            CONFIG.camera.distance
+        );
+        
+        camera.position.copy(character.position).add(offset);
+        camera.lookAt(character.position);
+    }
+}
+
+// Window Resize Handler
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// Animation Loop
+function animate() {
+    requestAnimationFrame(animate);
+    
+    if (isARMode && arToolkitContext && arToolkitSource && arToolkitSource.ready) {
+        arToolkitContext.update(arToolkitSource.domElement);
+    }
+    
+    updateCharacter();
+    
+    if (!isARMode) {
+        updateCamera();
+    }
+    
+    renderer.render(scene, camera);
+}
+
+// Start the game when page loads
+window.addEventListener('load', init);
+

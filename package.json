@@ -1,0 +1,22 @@
+{
+  "name": "webar-ttrpg-game",
+  "version": "1.0.0",
+  "description": "A cross-platform WebAR TTRPG game with Three.js and AR.js",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 8000 -c-1",
+    "dev": "npx http-server -p 8000 -c-1 -o"
+  },
+  "keywords": [
+    "webAR",
+    "threejs",
+    "arjs",
+    "game",
+    "ttrpg"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {}
+}
+
