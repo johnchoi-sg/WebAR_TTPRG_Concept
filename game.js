@@ -35,6 +35,9 @@ let deviceOrientation = {
     available: false
 };
 
+// Initialize with default values to avoid null/undefined
+let deviceAcceleration = { x: 0, y: 0, z: 0 };
+
 let lastMarkerPosition = new THREE.Vector3();
 let lastMarkerRotation = new THREE.Euler();
 let usingDeadReckoning = false;
@@ -281,19 +284,40 @@ function setupDeviceOrientation() {
 }
 
 // Handle Device Orientation Changes
+let orientationEventCount = 0;
 function handleDeviceOrientation(event) {
     deviceOrientation.alpha = event.alpha || 0;  // 0-360 degrees
     deviceOrientation.beta = event.beta || 0;    // -180 to 180 degrees
     deviceOrientation.gamma = event.gamma || 0;  // -90 to 90 degrees
+    
+    // Log first few events to confirm it's working
+    orientationEventCount++;
+    if (orientationEventCount <= 3) {
+        console.log(`📱 Orientation event ${orientationEventCount}:`, {
+            alpha: deviceOrientation.alpha.toFixed(1),
+            beta: deviceOrientation.beta.toFixed(1),
+            gamma: deviceOrientation.gamma.toFixed(1)
+        });
+    }
 }
 
 // Handle Device Motion (Accelerometer)
-let deviceAcceleration = { x: 0, y: 0, z: 0 };
+let motionEventCount = 0;
 function handleDeviceMotion(event) {
     if (event.accelerationIncludingGravity) {
         deviceAcceleration.x = event.accelerationIncludingGravity.x || 0;
         deviceAcceleration.y = event.accelerationIncludingGravity.y || 0;
         deviceAcceleration.z = event.accelerationIncludingGravity.z || 0;
+        
+        // Log first few events to confirm it's working
+        motionEventCount++;
+        if (motionEventCount <= 3) {
+            console.log(`📊 Motion event ${motionEventCount}:`, {
+                x: deviceAcceleration.x.toFixed(2),
+                y: deviceAcceleration.y.toFixed(2),
+                z: deviceAcceleration.z.toFixed(2)
+            });
+        }
     }
 }
 
@@ -320,7 +344,42 @@ function setupDebugPanel() {
         debugPanel.style.display = 'none';
     });
     
+    // Request sensors button
+    const requestSensorsBtn = document.getElementById('request-sensors-btn');
+    if (requestSensorsBtn) {
+        requestSensorsBtn.addEventListener('click', () => {
+            console.log('📱 Manually requesting sensor permissions...');
+            requestSensorPermissions();
+        });
+    }
+    
     console.log('✅ Debug panel setup complete');
+}
+
+// Manually request sensor permissions (useful for iOS 13+)
+function requestSensorPermissions() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+            .then(permissionState => {
+                if (permissionState === 'granted') {
+                    console.log('✅ Device orientation permission granted!');
+                    alert('✅ Sensor permissions granted!');
+                    // Re-setup listeners
+                    window.addEventListener('deviceorientation', handleDeviceOrientation);
+                    deviceOrientation.available = true;
+                } else {
+                    console.log('❌ Device orientation permission denied');
+                    alert('❌ Permission denied. Please allow in Settings.');
+                }
+            })
+            .catch(err => {
+                console.error('Error requesting permission:', err);
+                alert('Error: ' + err.message);
+            });
+    } else {
+        console.log('ℹ️ Permission API not available (Android or older iOS)');
+        alert('ℹ️ Sensors should work automatically on this device.');
+    }
 }
 
 // Update Debug Panel
@@ -333,21 +392,25 @@ function updateDebugPanel() {
     updateDebugValue('debug-marker-visible', markerVisible ? 'Yes' : 'No');
     
     // Gyroscope
-    updateDebugValue('debug-alpha', deviceOrientation.alpha.toFixed(1));
-    updateDebugValue('debug-beta', deviceOrientation.beta.toFixed(1));
-    updateDebugValue('debug-gamma', deviceOrientation.gamma.toFixed(1));
-    updateDebugValue('debug-gyro-available', deviceOrientation.available ? 'Yes' : 'No');
+    updateDebugValue('debug-alpha', (deviceOrientation.alpha || 0).toFixed(1));
+    updateDebugValue('debug-beta', (deviceOrientation.beta || 0).toFixed(1));
+    updateDebugValue('debug-gamma', (deviceOrientation.gamma || 0).toFixed(1));
+    updateDebugValue('debug-gyro-available', deviceOrientation.available ? 'Yes ✅' : 'No ❌');
     
     // Accelerometer
-    updateDebugValue('debug-accel-x', deviceAcceleration.x.toFixed(2));
-    updateDebugValue('debug-accel-y', deviceAcceleration.y.toFixed(2));
-    updateDebugValue('debug-accel-z', deviceAcceleration.z.toFixed(2));
+    updateDebugValue('debug-accel-x', (deviceAcceleration.x || 0).toFixed(2));
+    updateDebugValue('debug-accel-y', (deviceAcceleration.y || 0).toFixed(2));
+    updateDebugValue('debug-accel-z', (deviceAcceleration.z || 0).toFixed(2));
     
     // Camera position
-    if (camera) {
+    if (camera && camera.position) {
         updateDebugValue('debug-cam-x', camera.position.x.toFixed(2));
         updateDebugValue('debug-cam-y', camera.position.y.toFixed(2));
         updateDebugValue('debug-cam-z', camera.position.z.toFixed(2));
+    } else {
+        updateDebugValue('debug-cam-x', 'N/A');
+        updateDebugValue('debug-cam-y', 'N/A');
+        updateDebugValue('debug-cam-z', 'N/A');
     }
     
     // Camera rotation (convert to degrees)
@@ -355,12 +418,25 @@ function updateDebugPanel() {
         updateDebugValue('debug-rot-x', (camera.rotation.x * 180 / Math.PI).toFixed(1));
         updateDebugValue('debug-rot-y', (camera.rotation.y * 180 / Math.PI).toFixed(1));
         updateDebugValue('debug-rot-z', (camera.rotation.z * 180 / Math.PI).toFixed(1));
+    } else {
+        updateDebugValue('debug-rot-x', 'N/A');
+        updateDebugValue('debug-rot-y', 'N/A');
+        updateDebugValue('debug-rot-z', 'N/A');
     }
     
     // Character position
-    if (character) {
+    if (character && character.position) {
         updateDebugValue('debug-char-x', character.position.x.toFixed(2));
         updateDebugValue('debug-char-z', character.position.z.toFixed(2));
+    } else {
+        updateDebugValue('debug-char-x', 'N/A');
+        updateDebugValue('debug-char-z', 'N/A');
+    }
+    
+    // Add marker root position for debugging (if available)
+    if (markerRoot && markerRoot.position) {
+        // You can uncomment these if you want to see marker position too
+        // console.log('Marker root:', markerRoot.position);
     }
 }
 

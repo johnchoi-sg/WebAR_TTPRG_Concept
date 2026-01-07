@@ -143,6 +143,27 @@ body {
     font-weight: bold;
 }
 
+.debug-button {
+    width: 100%;
+    padding: 10px;
+    background: #4ecca3;
+    color: #1a1a2e;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+.debug-button:hover {
+    background: #3db88f;
+}
+
+.debug-button:active {
+    transform: scale(0.98);
+}
+
 /* Debug Toggle Button */
 #debug-toggle {
     position: fixed;
