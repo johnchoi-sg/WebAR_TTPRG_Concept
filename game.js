@@ -27,9 +27,32 @@ let keys = {};
 let joystickActive = false;
 let joystickVector = { x: 0, y: 0 };
 
+// Device orientation tracking for dead reckoning
+let deviceOrientation = {
+    alpha: 0,  // Z-axis rotation (compass)
+    beta: 0,   // X-axis rotation (front-to-back tilt)
+    gamma: 0,  // Y-axis rotation (left-to-right tilt)
+    available: false
+};
+
+let lastMarkerPosition = new THREE.Vector3();
+let lastMarkerRotation = new THREE.Euler();
+let usingDeadReckoning = false;
+
 // Update marker visibility flag
 function setMarkerVisible(visible) {
     markerVisible = visible;
+    
+    if (visible && markerRoot) {
+        // Store last known marker position/rotation
+        lastMarkerPosition.copy(markerRoot.position);
+        lastMarkerRotation.copy(markerRoot.rotation);
+        usingDeadReckoning = false;
+    } else {
+        // Lost marker, switch to dead reckoning
+        usingDeadReckoning = true;
+        console.log('📍 Marker lost, using dead reckoning with device orientation');
+    }
 }
 
 // Initialize the game
@@ -193,6 +216,9 @@ function initAR() {
     
     console.log('World and character created in scene (always visible)');
     
+    // Setup device orientation for dead reckoning
+    setupDeviceOrientation();
+    
     // Handle window resize
     window.addEventListener('resize', onARResize);
     
@@ -212,6 +238,59 @@ function onARResize() {
     arToolkitSource.copyElementSizeTo(renderer.domElement);
     if (arToolkitContext.arController !== null) {
         arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+    }
+}
+
+// Setup Device Orientation for Dead Reckoning
+function setupDeviceOrientation() {
+    // Check if device orientation is supported
+    if (window.DeviceOrientationEvent) {
+        console.log('📱 Device orientation supported, enabling dead reckoning');
+        
+        // Request permission on iOS 13+
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        window.addEventListener('deviceorientation', handleDeviceOrientation);
+                        deviceOrientation.available = true;
+                        console.log('✅ Device orientation permission granted');
+                    } else {
+                        console.log('⚠️ Device orientation permission denied');
+                    }
+                })
+                .catch(console.error);
+        } else {
+            // Non-iOS or older iOS
+            window.addEventListener('deviceorientation', handleDeviceOrientation);
+            deviceOrientation.available = true;
+            console.log('✅ Device orientation enabled');
+        }
+    } else {
+        console.log('⚠️ Device orientation not supported');
+    }
+    
+    // Also listen for device motion (accelerometer)
+    if (window.DeviceMotionEvent) {
+        window.addEventListener('devicemotion', handleDeviceMotion);
+        console.log('✅ Device motion (accelerometer) enabled');
+    }
+}
+
+// Handle Device Orientation Changes
+function handleDeviceOrientation(event) {
+    deviceOrientation.alpha = event.alpha || 0;  // 0-360 degrees
+    deviceOrientation.beta = event.beta || 0;    // -180 to 180 degrees
+    deviceOrientation.gamma = event.gamma || 0;  // -90 to 90 degrees
+}
+
+// Handle Device Motion (Accelerometer)
+let deviceAcceleration = { x: 0, y: 0, z: 0 };
+function handleDeviceMotion(event) {
+    if (event.accelerationIncludingGravity) {
+        deviceAcceleration.x = event.accelerationIncludingGravity.x || 0;
+        deviceAcceleration.y = event.accelerationIncludingGravity.y || 0;
+        deviceAcceleration.z = event.accelerationIncludingGravity.z || 0;
     }
 }
 
@@ -544,19 +623,30 @@ function animate() {
     if (isARMode && arToolkitContext && arToolkitSource && arToolkitSource.ready) {
         arToolkitContext.update(arToolkitSource.domElement);
         
+        // Apply dead reckoning if marker is lost but orientation is available
+        if (usingDeadReckoning && deviceOrientation.available && markerRoot) {
+            applyDeadReckoning();
+        }
+        
         // Update debug info
         const controlsInfo = document.getElementById('controls-info');
         if (controlsInfo) {
-            controlsInfo.innerHTML = markerVisible ? 
-                `✅ Marker tracking active!<br>World always visible<br>Use joystick to move` : 
-                '🔍 Point at Hiro marker...<br>World visible but not anchored';
-            controlsInfo.style.color = markerVisible ? '#4ecca3' : '#ff6b6b';
+            let statusText = '';
+            if (markerVisible) {
+                statusText = `✅ Marker tracking active!<br>World anchored<br>Use joystick to move`;
+            } else if (usingDeadReckoning && deviceOrientation.available) {
+                statusText = `📍 Dead reckoning mode<br>Using gyro/accelerometer<br>Point at marker to re-anchor`;
+            } else {
+                statusText = `🔍 Point at Hiro marker...<br>World visible but not anchored`;
+            }
+            controlsInfo.innerHTML = statusText;
+            controlsInfo.style.color = markerVisible ? '#4ecca3' : (usingDeadReckoning ? '#ffd93d' : '#ff6b6b');
         }
         
         // Log detection status every 60 frames (once per second at 60fps)
         frameCount++;
         if (frameCount % 60 === 0) {
-            console.log(`Frame ${frameCount}: Marker tracking = ${markerVisible}`);
+            console.log(`Frame ${frameCount}: Marker=${markerVisible}, DeadReckoning=${usingDeadReckoning}, Gyro=${deviceOrientation.available}`);
         }
     }
     
@@ -567,6 +657,26 @@ function animate() {
     }
     
     renderer.render(scene, camera);
+}
+
+// Apply Dead Reckoning using device orientation
+function applyDeadReckoning() {
+    if (!markerRoot || !deviceOrientation.available) return;
+    
+    // Use device orientation to adjust camera/marker position
+    // Convert device orientation to Three.js rotations
+    const alpha = THREE.MathUtils.degToRad(deviceOrientation.alpha);
+    const beta = THREE.MathUtils.degToRad(deviceOrientation.beta);
+    const gamma = THREE.MathUtils.degToRad(deviceOrientation.gamma);
+    
+    // Apply orientation to marker root (this keeps the world stable relative to device)
+    // Note: This is a simplified dead reckoning - in production you'd integrate
+    // accelerometer data for position tracking too
+    markerRoot.rotation.set(
+        lastMarkerRotation.x + beta * 0.1,
+        lastMarkerRotation.y + alpha * 0.1,
+        lastMarkerRotation.z + gamma * 0.1
+    );
 }
 
 // Start the game when page loads
