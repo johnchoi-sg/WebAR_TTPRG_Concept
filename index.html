@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>WebAR TTRPG Game</title>
+    <title>WebAR TTRPG Game - Dual Scene</title>
+    
+    <!-- Three.js (needed for game scene) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    
+    <!-- A-Frame and MindAR (for AR tracking) -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     
@@ -12,6 +17,22 @@
             margin: 0;
             overflow: hidden;
             font-family: Arial, sans-serif;
+        }
+
+        /* Game container for Three.js overlay */
+        #game-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* A-Frame scene behind game scene */
+        a-scene {
+            z-index: -1 !important;
         }
 
         #info {
@@ -42,68 +63,182 @@
         #examples-link:hover {
             background: rgba(100, 149, 237, 1);
         }
+
+        /* Debug Panel */
+        #debug {
+            position: fixed;
+            top: 80px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff00;
+            padding: 20px;
+            border: 2px solid #00ff00;
+            border-radius: 8px;
+            font-size: 16px;
+            z-index: 1000;
+            min-width: 350px;
+            font-family: 'Courier New', monospace;
+        }
+
+        #debug h2 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            border-bottom: 1px solid #00ff00;
+            padding-bottom: 8px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(0, 255, 0, 0.05);
+        }
+
+        .label {
+            color: #888;
+        }
+
+        .value {
+            color: #00ff00;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        #status {
+            padding: 10px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+
+        .tracking {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+        }
+
+        .lost {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff0000;
+            color: #ff0000;
+        }
     </style>
 </head>
 <body>
     <div id="info">
-        🎮 WebAR TTRPG Game<br>
-        <small>Point camera at marker</small>
+        🎮 WebAR TTRPG Game - Dual Scene<br>
+        <small>AR Tracking + Separate Game Renderer</small>
     </div>
 
     <a href="examples/example-minimal.html" id="examples-link">
         📚 View Examples
     </a>
 
-    <!-- A-Frame Scene with MindAR -->
+    <!-- Debug Overlay -->
+    <div id="debug">
+        <h2>📡 MINIMAL EXAMPLE</h2>
+        
+        <div id="status" class="lost">NOT TRACKING</div>
+        
+        <div class="row">
+            <span class="label">Position X:</span>
+            <span id="pos-x" class="value">0.000</span>
+        </div>
+        <div class="row">
+            <span class="label">Position Y:</span>
+            <span id="pos-y" class="value">0.000</span>
+        </div>
+        <div class="row">
+            <span class="label">Position Z:</span>
+            <span id="pos-z" class="value">0.000</span>
+        </div>
+        
+        <div class="row">
+            <span class="label">Rotation X:</span>
+            <span id="rot-x" class="value">0.0°</span>
+        </div>
+        <div class="row">
+            <span class="label">Rotation Y:</span>
+            <span id="rot-y" class="value">0.0°</span>
+        </div>
+        <div class="row">
+            <span class="label">Rotation Z:</span>
+            <span id="rot-z" class="value">0.0°</span>
+        </div>
+    </div>
+
+    <!-- Game Container (Three.js overlay) -->
+    <div id="game-container"></div>
+
+    <!-- A-Frame Scene with MindAR (for tracking only) -->
     <a-scene 
         mindar-image="imageTargetSrc: ./assets/targets.mind;" 
-        color-space="sRGB" 
-        renderer="colorManagement: true, physicallyCorrectLights" 
         vr-mode-ui="enabled: false" 
         device-orientation-permission-ui="enabled: false">
         
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
         
-        <!-- AR Target 0: The game world -->
-        <a-entity id="target" mindar-image-target="targetIndex: 0">
-            
-            <!-- Ground plane (the game map) -->
-            <a-plane 
-                position="0 0 0" 
-                rotation="-90 0 0" 
-                width="2" 
-                height="2" 
-                color="#3a7d44">
-            </a-plane>
-            
-            <!-- Character (simple box for now) -->
-            <a-box 
-                id="character"
-                position="0 0.15 0" 
-                scale="0.2 0.3 0.2"
-                color="#4ecca3">
-            </a-box>
-            
+        <!-- AR Target 0: Tracking anchor with blue rectangle -->
+        <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
+            <a-plane color="blue" opacity="0.5" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
         </a-entity>
     </a-scene>
 
-    <script>
-        console.log('🎮 WebAR TTRPG Game starting...');
+    <!-- Game Controller (ES6 Module) -->
+    <script type="module">
+        import { GameController } from './src/game-controller.js';
         
-        // Listen for AR events
-        document.querySelector('a-scene').addEventListener('loaded', () => {
-            console.log('✅ Scene loaded');
+        console.log('🎮 WebAR TTRPG Game starting...');
+        console.log('📡 Scene 1: AR Tracking (MindAR A-Frame)');
+        console.log('🎨 Scene 2: Game Rendering (Three.js)');
+        
+        // Get UI elements
+        const statusEl = document.getElementById('status');
+        const posX = document.getElementById('pos-x');
+        const posY = document.getElementById('pos-y');
+        const posZ = document.getElementById('pos-z');
+        const rotX = document.getElementById('rot-x');
+        const rotY = document.getElementById('rot-y');
+        const rotZ = document.getElementById('rot-z');
+        
+        // Initialize game controller
+        const gameController = new GameController();
+        await gameController.init();
+        
+        // Update debug UI every frame
+        function updateDebugUI() {
+            const tracking = gameController.getARTracking().getTrackingStatus();
             
-            const target = document.getElementById('target');
+            if (tracking.isTracking) {
+                statusEl.textContent = '✅ TRACKING';
+                statusEl.className = 'tracking';
+                
+                const pos = tracking.position;
+                const rot = tracking.rotation;
+                
+                posX.textContent = pos.x.toFixed(3);
+                posY.textContent = pos.y.toFixed(3);
+                posZ.textContent = pos.z.toFixed(3);
+                
+                rotX.textContent = (rot.x * 180 / Math.PI).toFixed(1) + '°';
+                rotY.textContent = (rot.y * 180 / Math.PI).toFixed(1) + '°';
+                rotZ.textContent = (rot.z * 180 / Math.PI).toFixed(1) + '°';
+            } else {
+                statusEl.textContent = '❌ NOT TRACKING';
+                statusEl.className = 'lost';
+            }
             
-            target.addEventListener('targetFound', () => {
-                console.log('✅ Target found!');
-            });
-            
-            target.addEventListener('targetLost', () => {
-                console.log('❌ Target lost');
-            });
-        });
+            requestAnimationFrame(updateDebugUI);
+        }
+        
+        updateDebugUI();
+        
+        // Make accessible for debugging
+        window.gameController = gameController;
+        
+        console.log('✅ Dual scene system ready!');
     </script>
 </body>
 </html>
