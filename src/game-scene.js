@@ -126,17 +126,9 @@ export class GameScene {
         // Apply scale BEFORE creating the matrix (important!)
         const scaledPos = position.clone().multiplyScalar(SCALE);
         
-        // Add 90-degree X rotation for marker on ground (not wall)
-        // This rotates the marker's coordinate system to match ground plane
-        const groundRotation = new THREE.Quaternion();
-        groundRotation.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2); // 90° around X
-        
-        // Combine rotations: marker rotation * ground adjustment
-        const adjustedQuat = quaternion.clone().multiply(groundRotation);
-        
-        // Create inverse transform matrix with scaled position and adjusted rotation
+        // Create inverse transform matrix with scaled position
         const matrix = new THREE.Matrix4();
-        matrix.compose(scaledPos, adjustedQuat, new THREE.Vector3(1, 1, 1));
+        matrix.compose(scaledPos, quaternion, new THREE.Vector3(1, 1, 1));
         matrix.invert();
         
         // Decompose inverse matrix to get camera transform
@@ -162,7 +154,6 @@ export class GameScene {
                 rawPos: position,
                 scaledPos: scaledPos.clone(),
                 rawQuat: quaternion.clone(),
-                adjustedQuat: adjustedQuat.clone(),
                 targetPos: this.targetCameraPosition.clone(),
                 actualPos: this.camera.position.clone()
             });
