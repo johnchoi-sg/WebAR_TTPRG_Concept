@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MindAR Examples - Interactive</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
+    <style>
+        body { margin: 0; font-family: 'Courier New', monospace; }
+        #example-selector { position: fixed; top: 20px; right: 20px; z-index: 10000; }
+        #example-selector select {
+            background: rgba(0, 0, 0, 0.9); color: #00ff00; border: 2px solid #00ff00;
+            padding: 10px 15px; font-size: 14px; font-family: 'Courier New', monospace;
+            border-radius: 5px; cursor: pointer;
+        }
+        #controls {
+            position: fixed; bottom: 20px; left: 20px; background: rgba(0, 0, 0, 0.9);
+            color: #00ff00; padding: 20px; border: 2px solid #00ff00; border-radius: 8px;
+            z-index: 10000;
+        }
+        button {
+            background: rgba(0,255,0,0.2); color: #00ff00; border: 2px solid #00ff00;
+            padding: 10px 20px; margin: 5px; border-radius: 5px; cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+        button:hover { background: rgba(0,255,0,0.4); }
+    </style>
+</head>
+<body>
+    <div id="example-selector">
+        <select onchange="window.location.href=this.value">
+            <option value="../index.html">Minimal</option>
+            <option value="example-basic.html">Basic</option>
+            <option value="example-multi-targets.html">Multi-Targets</option>
+            <option value="example-multi-tracks.html">Multi-Tracks</option>
+            <option value="example-custom-ui.html">Custom UI</option>
+            <option value="example-events.html">Events Handling</option>
+            <option value="example-interactive.html" selected>Interactive</option>
+        </select>
+    </div>
+
+    <div id="controls">
+        <h3 style="margin: 0 0 10px 0;">🎮 INTERACTIVE CONTROLS</h3>
+        <button onclick="changeColor()">Change Color</button>
+        <button onclick="toggleRotation()">Toggle Rotation</button>
+        <button onclick="resetBox()">Reset</button>
+    </div>
+
+    <a-scene 
+        mindar-image="imageTargetSrc: ../assets/targets.mind;" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
+        
+        <a-camera position="0 0 0" look-controls="enabled: false" cursor="rayOrigin: mouse"></a-camera>
+        
+        <a-entity mindar-image-target="targetIndex: 0">
+            <a-box 
+                id="interactive-box"
+                color="cyan" 
+                opacity="0.8" 
+                position="0 0.5 0" 
+                width="1" 
+                height="1" 
+                depth="1"
+                animation="property: rotation; to: 0 360 0; dur: 3000; loop: true; easing: linear; pauseEvents: pause; resumeEvents: resume">
+            </a-box>
+        </a-entity>
+    </a-scene>
+
+    <script>
+        const colors = ['cyan', 'magenta', 'yellow', 'red', 'green', 'blue', 'purple', 'orange'];
+        let colorIndex = 0;
+        let rotating = true;
+        
+        function changeColor() {
+            colorIndex = (colorIndex + 1) % colors.length;
+            document.getElementById('interactive-box').setAttribute('color', colors[colorIndex]);
+        }
+        
+        function toggleRotation() {
+            const box = document.getElementById('interactive-box');
+            if (rotating) {
+                box.emit('pause');
+                rotating = false;
+            } else {
+                box.emit('resume');
+                rotating = true;
+            }
+        }
+        
+        function resetBox() {
+            const box = document.getElementById('interactive-box');
+            box.setAttribute('color', 'cyan');
+            box.setAttribute('rotation', '0 0 0');
+            colorIndex = 0;
+            if (!rotating) {
+                box.emit('resume');
+                rotating = true;
+            }
+        }
+    </script>
+</body>
+</html>
+

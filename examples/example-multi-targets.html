@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MindAR Examples - Multi-Targets</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
+    <style>
+        body { margin: 0; font-family: 'Courier New', monospace; }
+        #example-selector { position: fixed; top: 20px; right: 20px; z-index: 10000; }
+        #example-selector select {
+            background: rgba(0, 0, 0, 0.9); color: #00ff00; border: 2px solid #00ff00;
+            padding: 10px 15px; font-size: 14px; font-family: 'Courier New', monospace;
+            border-radius: 5px; cursor: pointer;
+        }
+        #debug {
+            position: fixed; top: 80px; left: 20px; background: rgba(0, 0, 0, 0.9);
+            color: #00ff00; padding: 20px; border: 2px solid #00ff00; border-radius: 8px;
+            font-size: 14px; z-index: 10000; min-width: 350px;
+        }
+        h2 { margin: 0 0 10px 0; font-size: 16px; border-bottom: 1px solid #00ff00; padding-bottom: 8px; }
+        .info { color: #888; font-size: 12px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div id="example-selector">
+        <select onchange="window.location.href=this.value">
+            <option value="../index.html">Minimal</option>
+            <option value="example-basic.html">Basic</option>
+            <option value="example-multi-targets.html" selected>Multi-Targets</option>
+            <option value="example-multi-tracks.html">Multi-Tracks</option>
+            <option value="example-custom-ui.html">Custom UI</option>
+            <option value="example-events.html">Events Handling</option>
+            <option value="example-interactive.html">Interactive</option>
+        </select>
+    </div>
+
+    <div id="debug">
+        <h2>🎯 MULTI-TARGETS EXAMPLE</h2>
+        <div class="info">Detects multiple targets, tracks one at a time</div>
+        <div id="status" style="padding: 10px; background: rgba(255,0,0,0.2); border: 1px solid #ff0000; color: #ff0000; text-align: center; border-radius: 4px;">
+            Waiting for target...
+        </div>
+    </div>
+
+    <a-scene 
+        mindar-image="imageTargetSrc: ../assets/targets.mind;" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
+        
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        
+        <!-- Target 0 - Red Box -->
+        <a-entity id="target0" mindar-image-target="targetIndex: 0">
+            <a-box color="red" opacity="0.8" position="0 0.5 0" width="1" height="1" depth="1"></a-box>
+        </a-entity>
+    </a-scene>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        
+        document.querySelector('a-scene').addEventListener('loaded', () => {
+            const target0 = document.getElementById('target0');
+            
+            target0.addEventListener('targetFound', () => {
+                statusEl.textContent = '✅ Target 0 Found (Red Box)';
+                statusEl.style.background = 'rgba(0,255,0,0.2)';
+                statusEl.style.borderColor = '#00ff00';
+                statusEl.style.color = '#00ff00';
+            });
+            
+            target0.addEventListener('targetLost', () => {
+                statusEl.textContent = '❌ Target Lost';
+                statusEl.style.background = 'rgba(255,0,0,0.2)';
+                statusEl.style.borderColor = '#ff0000';
+                statusEl.style.color = '#ff0000';
+            });
+        });
+    </script>
+</body>
+</html>
+

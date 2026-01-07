@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MindAR Tracking Data</title>
+    <title>MindAR Examples - Minimal</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     
@@ -12,9 +12,33 @@
             font-family: 'Courier New', monospace;
         }
 
-        #debug {
+        /* Example Selector */
+        #example-selector {
             position: fixed;
             top: 20px;
+            right: 20px;
+            z-index: 10000;
+        }
+
+        #example-selector select {
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            padding: 10px 15px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #example-selector select:hover {
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        /* Debug Panel */
+        #debug {
+            position: fixed;
+            top: 80px;
             left: 20px;
             background: rgba(0, 0, 0, 0.9);
             color: #00ff00;
@@ -73,9 +97,22 @@
     </style>
 </head>
 <body>
+    <!-- Example Selector -->
+    <div id="example-selector">
+        <select id="example-dropdown" onchange="loadExample(this.value)">
+            <option value="index.html">Minimal</option>
+            <option value="examples/example-basic.html">Basic</option>
+            <option value="examples/example-multi-targets.html">Multi-Targets</option>
+            <option value="examples/example-multi-tracks.html">Multi-Tracks</option>
+            <option value="examples/example-custom-ui.html">Custom UI</option>
+            <option value="examples/example-events.html">Events Handling</option>
+            <option value="examples/example-interactive.html">Interactive</option>
+        </select>
+    </div>
+
     <!-- Debug Overlay -->
     <div id="debug">
-        <h2>📡 TRACKING DATA</h2>
+        <h2>📡 MINIMAL EXAMPLE</h2>
         
         <div id="status" class="lost">NOT TRACKING</div>
         
@@ -120,6 +157,11 @@
     </a-scene>
 
     <script>
+        // Example selector
+        function loadExample(url) {
+            window.location.href = url;
+        }
+
         // Get UI elements
         const statusEl = document.getElementById('status');
         const posX = document.getElementById('pos-x');
@@ -134,11 +176,10 @@
         // Wait for scene to load
         const sceneEl = document.querySelector('a-scene');
         sceneEl.addEventListener('loaded', () => {
-            console.log('✅ Scene loaded');
+            console.log('✅ Minimal example loaded');
 
             const target = document.getElementById('target');
 
-            // Listen for target found
             target.addEventListener('targetFound', () => {
                 console.log('✅ Target found!');
                 isTracking = true;
@@ -146,7 +187,6 @@
                 statusEl.className = 'tracking';
             });
 
-            // Listen for target lost
             target.addEventListener('targetLost', () => {
                 console.log('❌ Target lost');
                 isTracking = false;
@@ -157,18 +197,15 @@
             // Update position/rotation every frame
             setInterval(() => {
                 if (isTracking && target.object3D) {
-                    // Get world position
                     const worldPos = new THREE.Vector3();
                     target.object3D.getWorldPosition(worldPos);
 
-                    // Get world rotation
                     const worldQuat = new THREE.Quaternion();
                     target.object3D.getWorldQuaternion(worldQuat);
                     
                     const worldRot = new THREE.Euler();
                     worldRot.setFromQuaternion(worldQuat);
 
-                    // Update display
                     posX.textContent = worldPos.x.toFixed(3);
                     posY.textContent = worldPos.y.toFixed(3);
                     posZ.textContent = worldPos.z.toFixed(3);

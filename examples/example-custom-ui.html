@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MindAR Examples - Custom UI</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
+    <style>
+        body { margin: 0; font-family: 'Courier New', monospace; }
+        #example-selector { position: fixed; top: 20px; right: 20px; z-index: 10000; }
+        #example-selector select {
+            background: rgba(0, 0, 0, 0.9); color: #00ff00; border: 2px solid #00ff00;
+            padding: 10px 15px; font-size: 14px; font-family: 'Courier New', monospace;
+            border-radius: 5px; cursor: pointer;
+        }
+        #custom-loading {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; color: #00ff00; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+        }
+        #custom-loading h1 { font-size: 32px; margin-bottom: 20px; }
+        #custom-loading .spinner {
+            border: 4px solid rgba(0,255,0,0.1);
+            border-top: 4px solid #00ff00;
+            border-radius: 50%; width: 50px; height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #custom-scanning {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.9); color: #00ff00; padding: 15px 30px;
+            border: 2px solid #00ff00; border-radius: 25px; z-index: 10000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="example-selector">
+        <select onchange="window.location.href=this.value">
+            <option value="../index.html">Minimal</option>
+            <option value="example-basic.html">Basic</option>
+            <option value="example-multi-targets.html">Multi-Targets</option>
+            <option value="example-multi-tracks.html">Multi-Tracks</option>
+            <option value="example-custom-ui.html" selected>Custom UI</option>
+            <option value="example-events.html">Events Handling</option>
+            <option value="example-interactive.html">Interactive</option>
+        </select>
+    </div>
+
+    <div id="custom-loading">
+        <h1>🎮 CUSTOM UI EXAMPLE</h1>
+        <div class="spinner"></div>
+        <p style="margin-top: 20px;">Loading AR Experience...</p>
+    </div>
+
+    <div id="custom-scanning">
+        📱 Point camera at marker
+    </div>
+
+    <a-scene 
+        mindar-image="imageTargetSrc: ../assets/targets.mind; uiScanning: #custom-scanning; uiLoading: #custom-loading" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
+        
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        
+        <a-entity mindar-image-target="targetIndex: 0">
+            <a-plane color="purple" opacity="0.7" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
+        </a-entity>
+    </a-scene>
+</body>
+</html>
+
