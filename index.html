@@ -1,30 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>WebAR TTRPG Game</title>
-    <!-- MindAR with Three.js -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-three.prod.js"></script>
-    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- MindAR A-Frame (Official Way) -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        
+        #info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 1000;
+            font-size: 14px;
+        }
+        
+        #test-menu {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+        
+        #test-menu-toggle {
+            background: rgba(100, 149, 237, 0.9);
+            color: white;
+            border: 2px solid #6495ed;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        #test-menu-toggle:hover {
+            background: rgba(100, 149, 237, 1);
+        }
+        
+        #test-menu-content {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #6495ed;
+            border-radius: 10px;
+            padding: 15px;
+            min-width: 250px;
+            display: none;
+        }
+        
+        #test-menu-content h3 {
+            color: #6495ed;
+            margin: 0 0 15px 0;
+            font-size: 16px;
+        }
+        
+        .test-link {
+            display: block;
+            background: rgba(100, 149, 237, 0.2);
+            color: white;
+            text-decoration: none;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 1px solid rgba(100, 149, 237, 0.4);
+        }
+        
+        .test-link:hover {
+            background: rgba(100, 149, 237, 0.4);
+        }
+        
+        .test-link small {
+            display: block;
+            color: #aaa;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+    </style>
 </head>
 <body>
     <div id="info">
-        <div id="desktop-info" style="display: none;">
-            🖥️ Desktop Mode<br>
-            Use Arrow Keys or WASD to move
-        </div>
-        <div id="mobile-info" style="display: none;">
-            📱 AR Mode<br>
-            Point camera at marker and use joystick to move
-        </div>
+        🎮 WebAR TTRPG Game<br>
+        <small>Point camera at target marker</small>
     </div>
     
-    <!-- Test Pages Menu -->
+    <!-- Test Menu -->
     <div id="test-menu">
         <button id="test-menu-toggle">🧪 Tests</button>
-        <div id="test-menu-content" style="display: none;">
+        <div id="test-menu-content">
             <h3>🧪 Test Pages</h3>
             <a href="compile-target.html" class="test-link">
                 🔨 Compile Target<br>
@@ -38,135 +115,79 @@
                 ⚡ Quick Start Guide<br>
                 <small>3-step setup guide</small>
             </a>
-            <a href="docs/SIMPLE_TEST.md" class="test-link" target="_blank">
-                📚 Detailed Guide<br>
-                <small>Step-by-step instructions</small>
-            </a>
-        </div>
-    </div>
-    
-    <!-- Debug Panel for Mobile AR -->
-    <div id="debug-panel" style="display: none;">
-        <div id="debug-header">
-            <span>🔬 AR Debug</span>
-            <button id="debug-close">×</button>
-        </div>
-        <div id="debug-content">
-            <div class="debug-section">
-                <h4>📍 Marker Tracking</h4>
-                <div class="debug-item">Status: <span id="debug-marker-status">-</span></div>
-                <div class="debug-item">Visible: <span id="debug-marker-visible">-</span></div>
-            </div>
-            
-            <div class="debug-section">
-                <h4>📱 Gyroscope</h4>
-                <div class="debug-item">Alpha (α): <span id="debug-alpha">-</span>°</div>
-                <div class="debug-item">Beta (β): <span id="debug-beta">-</span>°</div>
-                <div class="debug-item">Gamma (γ): <span id="debug-gamma">-</span>°</div>
-                <div class="debug-item">Available: <span id="debug-gyro-available">-</span></div>
-            </div>
-            
-            <div class="debug-section">
-                <h4>📊 Accelerometer</h4>
-                <div class="debug-item">X: <span id="debug-accel-x">-</span></div>
-                <div class="debug-item">Y: <span id="debug-accel-y">-</span></div>
-                <div class="debug-item">Z: <span id="debug-accel-z">-</span></div>
-            </div>
-            
-            <div class="debug-section">
-                <h4>📷 Camera Position</h4>
-                <div class="debug-item">X: <span id="debug-cam-x">-</span></div>
-                <div class="debug-item">Y: <span id="debug-cam-y">-</span></div>
-                <div class="debug-item">Z: <span id="debug-cam-z">-</span></div>
-            </div>
-            
-            <div class="debug-section">
-                <h4>🔄 Camera Rotation</h4>
-                <div class="debug-item">X: <span id="debug-rot-x">-</span>°</div>
-                <div class="debug-item">Y: <span id="debug-rot-y">-</span>°</div>
-                <div class="debug-item">Z: <span id="debug-rot-z">-</span>°</div>
-            </div>
-            
-            <div class="debug-section">
-                <h4>🎮 Character</h4>
-                <div class="debug-item">X: <span id="debug-char-x">-</span></div>
-                <div class="debug-item">Z: <span id="debug-char-z">-</span></div>
-            </div>
-            
-            <div class="debug-section">
-                <button id="request-sensors-btn" class="debug-button">
-                    📱 Request Sensor Permissions
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Debug Toggle Button -->
-    <button id="debug-toggle" style="display: none;">🔬</button>
-    
-    <!-- Touch Joystick for Mobile -->
-    <div id="joystick-container" style="display: none;">
-        <div id="joystick-base">
-            <div id="joystick-stick"></div>
         </div>
     </div>
 
-    <!-- Desktop Renderer Container -->
-    <div id="desktop-container"></div>
-    
-    <!-- AR Container for Mobile -->
-    <div id="ar-container" style="display: none;">
-        <video id="ar-video" autoplay playsinline></video>
-        <canvas id="ar-canvas"></canvas>
-    </div>
-    
-    <!-- Camera Permission Prompt -->
-    <div id="camera-prompt" style="display: none;">
-        <div id="camera-prompt-content">
-            <h2>📷 Camera Access Required</h2>
-            <p>This AR experience needs camera access to work.</p>
-            <p><strong>Please allow camera permissions when prompted.</strong></p>
-            <button id="request-camera-btn" class="primary-button">
-                📷 Enable Camera
-            </button>
-            <div id="camera-error" style="display: none; color: #ff4444; margin-top: 10px;"></div>
-            <div id="camera-help" style="margin-top: 15px; font-size: 0.9em; color: #666;">
-                <details>
-                    <summary>Not working? Click for help</summary>
-                    <ul style="text-align: left; margin-top: 10px;">
-                        <li>Make sure you're using HTTPS or localhost</li>
-                        <li>Check browser camera permissions in settings</li>
-                        <li>Close other apps using the camera</li>
-                        <li>Try refreshing the page</li>
-                        <li>See <a href="START_HERE_CAMERA.md" target="_blank">camera setup guide</a></li>
-                    </ul>
-                </details>
-            </div>
-        </div>
-    </div>
+    <!-- A-Frame Scene with MindAR -->
+    <a-scene 
+        mindar-image="imageTargetSrc: ./assets/targets.mind; autoStart: true;" 
+        color-space="sRGB" 
+        renderer="colorManagement: true, physicallyCorrectLights" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
+        
+        <a-assets>
+            <img id="target-image" src="./assets/target.png">
+        </a-assets>
 
-    <script type="module" src="src/game.js"></script>
-    
-    <!-- Test Menu Toggle Script -->
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        
+        <!-- AR Target 0: The game world -->
+        <a-entity mindar-image-target="targetIndex: 0">
+            
+            <!-- Ground plane (the game map) -->
+            <a-plane 
+                position="0 0 0" 
+                rotation="-90 0 0" 
+                width="2" 
+                height="2" 
+                color="#3a7d44">
+            </a-plane>
+            
+            <!-- Character (simple box for now) -->
+            <a-box 
+                id="character"
+                position="0 0.15 0" 
+                scale="0.2 0.3 0.2"
+                color="#4ecca3">
+            </a-box>
+            
+        </a-entity>
+    </a-scene>
+
     <script>
-        // Toggle test menu
+        console.log('🎮 WebAR TTRPG Game starting...');
+        
+        // Test menu toggle
         const testMenuToggle = document.getElementById('test-menu-toggle');
         const testMenuContent = document.getElementById('test-menu-content');
         
-        if (testMenuToggle && testMenuContent) {
-            testMenuToggle.addEventListener('click', () => {
-                const isVisible = testMenuContent.style.display === 'block';
-                testMenuContent.style.display = isVisible ? 'none' : 'block';
+        testMenuToggle.addEventListener('click', () => {
+            const isVisible = testMenuContent.style.display === 'block';
+            testMenuContent.style.display = isVisible ? 'none' : 'block';
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('test-menu').contains(e.target)) {
+                testMenuContent.style.display = 'none';
+            }
+        });
+        
+        // Listen for AR events
+        document.querySelector('a-scene').addEventListener('loaded', () => {
+            console.log('✅ Scene loaded');
+            
+            const target = document.querySelector('[mindar-image-target]');
+            
+            target.addEventListener('targetFound', () => {
+                console.log('✅ Target found!');
             });
             
-            // Close menu when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!document.getElementById('test-menu').contains(e.target)) {
-                    testMenuContent.style.display = 'none';
-                }
+            target.addEventListener('targetLost', () => {
+                console.log('❌ Target lost');
             });
-        }
+        });
     </script>
 </body>
 </html>
-
