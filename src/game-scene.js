@@ -26,9 +26,10 @@ export class GameScene {
         // Create Three.js scene
         this.scene = new THREE.Scene();
         
-        // Create camera with isometric view
+        // Create camera matching A-Frame/MindAR defaults
         const aspect = window.innerWidth / window.innerHeight;
-        this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
+        // A-Frame default FOV is 80 degrees (vertical FOV)
+        this.camera = new THREE.PerspectiveCamera(80, aspect, 0.1, 1000);
         
         // Isometric-style position (45° angle, elevated)
         this.camera.position.set(3, 3, 3);  // Diagonal view from above
@@ -116,9 +117,20 @@ export class GameScene {
         // Scale factor to normalize huge AR values (adjust if needed)
         const SCALE = 0.001; // Convert from mm to meters (or similar)
         
-        // Create inverse transform matrix
+        // Apply scale BEFORE creating the matrix (important!)
+        const scaledPos = position.clone().multiplyScalar(SCALE);
+        
+        // Add 90-degree X rotation for marker on ground (not wall)
+        // This rotates the marker's coordinate system to match ground plane
+        const groundRotation = new THREE.Quaternion();
+        groundRotation.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2); // 90° around X
+        
+        // Combine rotations: marker rotation * ground adjustment
+        const adjustedQuat = quaternion.clone().multiply(groundRotation);
+        
+        // Create inverse transform matrix with scaled position and adjusted rotation
         const matrix = new THREE.Matrix4();
-        matrix.compose(position, quaternion, new THREE.Vector3(1, 1, 1));
+        matrix.compose(scaledPos, adjustedQuat, new THREE.Vector3(1, 1, 1));
         matrix.invert();
         
         // Decompose inverse matrix to get camera transform
@@ -126,9 +138,6 @@ export class GameScene {
         const camQuat = new THREE.Quaternion();
         const camScale = new THREE.Vector3();
         matrix.decompose(camPos, camQuat, camScale);
-        
-        // Apply scale to position
-        camPos.multiplyScalar(SCALE);
         
         // Apply to camera (1:1 match with AR tracking)
         this.camera.position.copy(camPos);
@@ -141,7 +150,9 @@ export class GameScene {
         if (Math.random() < 0.02) {
             console.log('📷 Camera updated:', {
                 rawPos: position,
-                rawQuat: quaternion,
+                scaledPos: scaledPos.clone(),
+                rawQuat: quaternion.clone(),
+                adjustedQuat: adjustedQuat.clone(),
                 camPos: camPos.clone(),
                 camQuat: camQuat.clone()
             });
